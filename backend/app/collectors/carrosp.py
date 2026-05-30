@@ -46,10 +46,15 @@ class CarroSPConnector(PortalConnector):
     def build_search_url(self, criteria: SearchCriteria) -> str:
         loc = _local(criteria)
         if criteria.marca and criteria.modelo:
-            return f"{BASE}/carros/{loc}/{_slug(criteria.marca)}/{_slug(criteria.modelo)}/"
-        if criteria.marca:  # só marca → traz a marca toda (não /todos/)
-            return f"{BASE}/carros/{loc}/{_slug(criteria.marca)}/"
-        return f"{BASE}/carros/{loc}/todos/"
+            base = f"{BASE}/carros/{loc}/{_slug(criteria.marca)}/{_slug(criteria.modelo)}/"
+        elif criteria.marca:  # só marca → traz a marca toda (não /todos/)
+            base = f"{BASE}/carros/{loc}/{_slug(criteria.marca)}/"
+        else:
+            base = f"{BASE}/carros/{loc}/todos/"
+        # raio de distância da cidade (CarroSP: ?distancia=N km)
+        if criteria.raio_km and criteria.cidade:
+            base += f"?distancia={int(criteria.raio_km)}"
+        return base
 
     def search(self, criteria: SearchCriteria, fetch: Fetcher) -> list[RawListing]:
         """Pagina via ?page=N: lê o total na 1ª página e busca o resto em paralelo."""

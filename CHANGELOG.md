@@ -9,6 +9,18 @@ A cada alteração: nova versão + entrada aqui + documentação atualizada + pu
 ## [Não lançado]
 - (próximas alterações entram aqui)
 
+## [0.6.0] - 2026-05-30
+### Added
+- **Filtro de veículos compartilhado** (`components/FiltroVeiculos.jsx`): a tela
+  **Novo monitor** agora usa os MESMOS filtros ricos da Busca (cascata marca→modelo→
+  versão, estado→cidade, ano/preço/km, câmbio, combustível, condição).
+- **Raio de distância (km)**: slider a partir da cidade selecionada; reflete na busca
+  (CarroSP via `?distancia=N`). Backend: `raio_km` em SearchCriteria/SearchRequest.
+- **Filtro de portal** (chips clicáveis) na Busca e no Ranking: clicar mostra só os
+  resultados daquele portal; opção "Todos". Filtragem instantânea no cliente.
+### Changed
+- Componentes de filtro extraídos e reutilizados entre Busca e Monitor (DRY).
+
 ## [0.5.8] - 2026-05-30
 ### Added
 - **Cache-first na busca**: se já há resultados recentes (<30min) p/ o critério, devolve

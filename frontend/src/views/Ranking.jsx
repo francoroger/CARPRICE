@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 
 const brl = (v) => (v == null ? "—" : "R$ " + v.toLocaleString("pt-BR"));
@@ -9,6 +9,17 @@ export function Ranking() {
   const [origem, setOrigem] = useState("");
   const [descMin, setDescMin] = useState("");
   const [loading, setLoading] = useState(true);
+  const [portalSel, setPortalSel] = useState("");
+
+  const porPortal = useMemo(() => {
+    const c = {};
+    for (const l of items) c[l.portal_slug] = (c[l.portal_slug] || 0) + 1;
+    return c;
+  }, [items]);
+  const filtered = useMemo(
+    () => (portalSel ? items.filter((l) => l.portal_slug === portalSel) : items),
+    [items, portalSel]
+  );
 
   async function load() {
     setLoading(true);
@@ -37,8 +48,18 @@ export function Ranking() {
           <input type="number" value={descMin} onChange={(e) => setDescMin(e.target.value)}
             placeholder="ex: 8" className="input w-28" />
         </Field>
-        <span className="text-sm text-slate-500">{items.length} anúncios</span>
+        <span className="text-sm text-slate-500">{filtered.length} anúncios</span>
       </div>
+
+      {/* FILTRO DE PORTAL */}
+      {items.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          <Chip ativo={portalSel === ""} onClick={() => setPortalSel("")} label={`Todos (${items.length})`} />
+          {Object.entries(porPortal).sort((a, b) => b[1] - a[1]).map(([p, n]) => (
+            <Chip key={p} ativo={portalSel === p} onClick={() => setPortalSel(p)} label={`${p} (${n})`} />
+          ))}
+        </div>
+      )}
 
       <div className="bg-white rounded-xl shadow-sm overflow-x-auto">
         <table className="w-full text-sm min-w-[640px]">
@@ -56,12 +77,12 @@ export function Ranking() {
           </thead>
           <tbody>
             {loading && <tr><td colSpan={8} className="px-3 py-6 text-center text-slate-400">Carregando…</td></tr>}
-            {!loading && items.length === 0 && (
+            {!loading && filtered.length === 0 && (
               <tr><td colSpan={8} className="px-3 py-6 text-center text-slate-400">
                 Nenhum anúncio ainda. Clique em “Varrer agora”.
               </td></tr>
             )}
-            {items.map((l) => (
+            {filtered.map((l) => (
               <tr key={l.id} className="border-t border-slate-100 hover:bg-slate-50">
                 <td className="px-3 py-2 max-w-xs">
                   <a href={l.url} target="_blank" rel="noreferrer" className="text-sky-700 hover:underline">
@@ -88,6 +109,17 @@ export function Ranking() {
         </table>
       </div>
     </div>
+  );
+}
+
+function Chip({ ativo, onClick, label }) {
+  return (
+    <button onClick={onClick}
+      className={`text-xs px-2.5 py-1 rounded-full border ${ativo
+        ? "bg-slate-900 text-white border-slate-900"
+        : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}>
+      {label}
+    </button>
   );
 }
 

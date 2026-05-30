@@ -35,6 +35,7 @@ class SearchCriteria:
     versao: str | None = None
     uf: str | None = None
     cidade: str | None = None
+    raio_km: int | None = None     # distância a partir da cidade (onde o portal suporta)
     # pós-filtros
     ano_min: int | None = None
     ano_max: int | None = None

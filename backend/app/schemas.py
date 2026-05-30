@@ -87,6 +87,7 @@ class SearchRequest(BaseModel):
     versao: str | None = None
     uf: str | None = None
     cidade: str | None = None
+    raio_km: int | None = None
     ano_min: int | None = None
     ano_max: int | None = None
     preco_min: int | None = None
