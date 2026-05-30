@@ -7,6 +7,29 @@ oportunidade. _"Configure uma vez e aguarde os resultados chegarem."_
 
 Especificação completa: [PROJETO_v3.md](PROJETO_v3.md). Provas de coleta: [`/spike`](spike).
 
+## 🚀 Deploy (Netlify + Render)
+
+O app tem **2 partes**: o **frontend** (site estático, vai no Netlify) e o **backend**
+Python que faz o scraping ao vivo (vai num host de servidor, ex.: Render). O Netlify
+**não roda** o backend Python — ele só serve o site e repassa `/api` pro backend.
+
+**1) Backend no Render** (https://render.com → New → Blueprint → este repo)
+- O `render.yaml` cria o serviço FastAPI automaticamente (plano free, só httpx — sem navegador).
+- Ao terminar, copie a URL gerada (ex.: `https://carprice-api.onrender.com`).
+
+**2) Aponte o frontend pro backend**
+- Edite `netlify.toml` → no redirect `/api/*`, troque a URL pela do seu backend.
+- Commit + push (`git add netlify.toml && git commit -m "aponta backend" && git push`).
+
+**3) Frontend no Netlify** (https://app.netlify.com → Add new site → Import → este repo)
+- O `netlify.toml` já define: base `frontend`, build `npm run build`, publish `dist`.
+- Pronto — o site sobe responsivo e as buscas chamam o backend via proxy `/api`.
+
+> ⚠️ **Aviso honesto:** o scraping a partir de um IP de datacenter (Render) pode
+> ser bloqueado/limitado por alguns portais (funciona melhor de IP residencial).
+> O free tier do Render hiberna após inatividade (1ª busca após dormir demora ~50s).
+> SQLite é efêmero no free — para persistir monitores, crie um Postgres no Render.
+
 ## Status — Fase 1 (MVP) entregue
 
 | Componente | Estado |
