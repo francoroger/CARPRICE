@@ -13,7 +13,7 @@ import logging
 import time
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -277,39 +277,53 @@ def _score_focado(db: Session, listings: list[VehicleListing], params: ScorePara
     db.commit()
 
 
-def buscar_ao_vivo(db: Session, criterios: dict, ordenar: str = "preco_asc") -> dict:
-    """Entra em TODOS os portais ativos ao vivo, traz tudo, e filtra pelo critério.
+CACHE_MIN = 30  # resultados coletados há menos que isso são servidos do cache (instantâneo)
 
-    Coleta em paralelo (rede), persiste no mercado, scoreia o conjunto filtrado com
-    FIPE FRESCA (conservadora) e retorna os anúncios na ordem pedida (default: preço
-    menor→maior, igual aos portais).
+
+def buscar_ao_vivo(db: Session, criterios: dict, ordenar: str = "preco_asc",
+                   forcar: bool = False) -> dict:
+    """Busca multi-portal com CACHE-FIRST.
+
+    Se já há resultados recentes (< CACHE_MIN) para o critério, devolve na hora.
+    Senão (ou se `forcar`), coleta ao vivo em paralelo, persiste e scoreia.
     """
     params = get_score_params(db)
     criteria = SearchCriteria.from_dict(criterios)
-    portais = db.scalars(select(Portal).where(Portal.ativo.is_(True))).all()
 
-    # 1) coleta paralela (somente rede, sem tocar no DB nas threads)
-    coletas: dict[int, tuple] = {}
-    with ThreadPoolExecutor(max_workers=min(8, max(1, len(portais)))) as ex:
-        futs = {ex.submit(_fetch_portal_raws, p, criteria): p for p in portais}
-        for fut in as_completed(futs):
-            p = futs[fut]
-            coletas[p.id] = (p, *fut.result())
+    def _naive(dt):
+        return dt.replace(tzinfo=None) if (dt and dt.tzinfo) else dt
 
-    # 2) upsert no mercado + logs
-    portais_status = []
-    for _pid, (p, raws, status, erro, dur) in coletas.items():
-        for raw in raws:
-            _upsert_listing(db, p.id, to_listing_dict(raw))
-        db.add(ScrapeLog(portal_id=p.id, tier_usado=int(p.min_tier), status=status,
-                         qtd_resultados=len(raws), erro=erro, duracao_ms=dur))
-        portais_status.append({"portal": p.slug, "status": status,
-                               "qtd": len(raws), "erro": erro})
-    db.commit()
-
-    # 3) filtra o mercado pelos critérios e scoreia SÓ o resultado (FIPE fresca)
+    # cache-first: olha o mercado já coletado
     todos = db.scalars(select(VehicleListing).where(VehicleListing.ativo.is_(True))).all()
     matched_listings = [l for l in todos if passa_filtros(l, criterios)]
+    corte = datetime.utcnow() - timedelta(minutes=CACHE_MIN)
+    frescos = [l for l in matched_listings if l.ultimo_visto_em and _naive(l.ultimo_visto_em) >= corte]
+    cacheado = (not forcar) and len(frescos) >= 10
+
+    if cacheado:
+        portais_status = [{"portal": "cache", "status": "cache",
+                           "qtd": len(matched_listings), "erro": None}]
+    else:
+        # coleta paralela (rede, sem DB nas threads) → upsert → re-filtra
+        portais = db.scalars(select(Portal).where(Portal.ativo.is_(True))).all()
+        coletas: dict[int, tuple] = {}
+        with ThreadPoolExecutor(max_workers=min(8, max(1, len(portais)))) as ex:
+            futs = {ex.submit(_fetch_portal_raws, p, criteria): p for p in portais}
+            for fut in as_completed(futs):
+                p = futs[fut]
+                coletas[p.id] = (p, *fut.result())
+        portais_status = []
+        for _pid, (p, raws, status, erro, dur) in coletas.items():
+            for raw in raws:
+                _upsert_listing(db, p.id, to_listing_dict(raw))
+            db.add(ScrapeLog(portal_id=p.id, tier_usado=int(p.min_tier), status=status,
+                             qtd_resultados=len(raws), erro=erro, duracao_ms=dur))
+            portais_status.append({"portal": p.slug, "status": status,
+                                   "qtd": len(raws), "erro": erro})
+        db.commit()
+        todos = db.scalars(select(VehicleListing).where(VehicleListing.ativo.is_(True))).all()
+        matched_listings = [l for l in todos if passa_filtros(l, criterios)]
+
     _score_focado(db, matched_listings, params)
 
     # 4) monta retorno rankeado

@@ -56,11 +56,11 @@ export function Busca() {
     if (modelo && f.marcaCodigo) setVersoes(await api.fipeVersoes(f.marcaCodigo, modelo).catch(() => []));
   }
 
-  async function buscar(e) {
-    e.preventDefault();
+  async function buscar(e, forcar = false) {
+    if (e && e.preventDefault) e.preventDefault();
     setLoading(true); setRes(null);
     try {
-      const crit = {};
+      const crit = { forcar };
       for (const [k, v] of Object.entries(f)) {
         if (k === "marcaCodigo" || v === "" || v == null) continue;
         crit[k] = ["ano_min", "ano_max", "preco_min", "preco_max", "km_min", "km_max"].includes(k)
@@ -138,8 +138,15 @@ export function Busca() {
           <>
             <div className="flex flex-wrap gap-2 mb-3 items-center">
               <span className="font-semibold">{res.total} veículos encontrados</span>
+              {(res.portais || []).some((p) => p.portal === "cache") && (
+                <span className="text-xs text-slate-400">(cache)</span>
+              )}
+              <button onClick={() => buscar(null, true)}
+                className="ml-auto text-sm px-3 py-1 rounded border border-slate-200 hover:bg-slate-50">
+                ↻ Atualizar
+              </button>
               <select value={ordem} onChange={(e) => setOrdem(e.target.value)}
-                className="input ml-auto text-sm py-1">
+                className="input text-sm py-1">
                 <option value="preco_asc">Preço: menor → maior</option>
                 <option value="preco_desc">Preço: maior → menor</option>
                 <option value="desconto">Melhor desconto</option>

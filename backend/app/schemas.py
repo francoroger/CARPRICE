@@ -98,6 +98,7 @@ class SearchRequest(BaseModel):
     cor: str | None = None
     condicao: str | None = None  # "0km" | "usado"
     ordenar: str = "preco_asc"   # preco_asc | preco_desc | desconto
+    forcar: bool = False         # True = ignora cache e coleta ao vivo de novo
 
 
 class PortalStatus(BaseModel):

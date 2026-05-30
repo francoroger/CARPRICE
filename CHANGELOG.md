@@ -9,6 +9,13 @@ A cada alteração: nova versão + entrada aqui + documentação atualizada + pu
 ## [Não lançado]
 - (próximas alterações entram aqui)
 
+## [0.5.8] - 2026-05-30
+### Added
+- **Cache-first na busca**: se já há resultados recentes (<30min) p/ o critério, devolve
+  na hora (~2-3s) em vez de coletar tudo de novo (~30s no Render). A 1ª busca de um
+  modelo coleta ao vivo; as seguintes vêm do cache. Botão **↻ Atualizar** força coleta
+  ao vivo (param `forcar`).
+
 ## [0.5.7] - 2026-05-30
 ### Changed
 - **Mais performance**: timeout da FIPE 20s→8s (fail-rápido quando bloqueada) e a

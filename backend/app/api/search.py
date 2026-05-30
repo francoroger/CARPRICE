@@ -18,10 +18,11 @@ def buscar(req: SearchRequest, db: Session = Depends(get_db)):
     """
     dados = req.model_dump()
     ordenar = dados.pop("ordenar", "preco_asc")
+    forcar = dados.pop("forcar", False)
     criterios = {k: v for k, v in dados.items() if v not in (None, "")}
     if criterios.get("marca"):  # 'VW - VolksWagen' (FIPE) → 'Volkswagen' (portais)
         criterios["marca"] = marca_canonica(criterios["marca"])
-    resultado = buscar_ao_vivo(db, criterios, ordenar=ordenar)
+    resultado = buscar_ao_vivo(db, criterios, ordenar=ordenar, forcar=forcar)
 
     # devolve tudo (até um teto alto) — o total real vai no cabeçalho
     LIMITE = 1000
