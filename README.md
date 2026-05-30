@@ -1,5 +1,7 @@
 # CarPrice — Monitoramento de Preços de Carros
 
+**Versão `0.5.0`** · [Changelog](CHANGELOG.md) · [Arquitetura](docs/ARCHITECTURE.md) · [Especificação](PROJETO_v3.md)
+
 Sistema que monitora anúncios de veículos em múltiplos portais brasileiros,
 identifica o **melhor custo-benefício comparando carros idênticos** (versão + ano,
 ajustado por km, com FIPE como fallback) e notifica por e-mail quando surge uma
