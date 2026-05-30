@@ -9,7 +9,9 @@ Toda chamada é defensiva: em falha, retorna None e a engine de score segue sem 
 """
 from __future__ import annotations
 
+import json
 import logging
+import pathlib
 import re
 import time
 import unicodedata
@@ -22,6 +24,17 @@ from sqlalchemy.orm import Session
 from app.models import FipeCache
 
 log = logging.getLogger(__name__)
+
+# Catálogo FIPE estático (marcas + modelos) embutido no repo. Gerado de um IP onde a
+# FIPE responde; usado nos dropdowns pois a FIPE oficial bloqueia IP de datacenter
+# (ex.: Render). O VALOR (preço) ainda é consultado ao vivo quando disponível.
+_CATALOG_PATH = pathlib.Path(__file__).resolve().parent.parent / "data" / "fipe_modelos.json"
+try:
+    _CATALOG: dict = json.loads(_CATALOG_PATH.read_text(encoding="utf-8"))
+    log.info("catálogo FIPE estático: %d marcas", len(_CATALOG))
+except Exception as e:  # noqa: BLE001
+    _CATALOG = {}
+    log.warning("catálogo FIPE estático não carregado: %s", e)
 
 BASE = "https://veiculos.fipe.org.br/api/veiculos"
 TIPO_CARRO = 1
@@ -84,20 +97,29 @@ class FipeClient:
 
     def _get_marcas(self) -> list[dict]:
         if self._marcas is None:
-            self._marcas = self._post(
-                "ConsultarMarcas",
-                {"codigoTabelaReferencia": self._ref_atual(), "codigoTipoVeiculo": TIPO_CARRO},
-            )
+            if _CATALOG:  # catálogo estático (funciona mesmo com FIPE bloqueada)
+                self._marcas = [{"Label": v["nome"], "Value": int(c)}
+                                for c, v in _CATALOG.items()]
+            else:
+                self._marcas = self._post(
+                    "ConsultarMarcas",
+                    {"codigoTabelaReferencia": self._ref_atual(),
+                     "codigoTipoVeiculo": TIPO_CARRO},
+                )
         return self._marcas
 
     def _get_modelos(self, cod_marca: int) -> list[dict]:
         if cod_marca not in self._modelos:
-            resp = self._post(
-                "ConsultarModelos",
-                {"codigoTabelaReferencia": self._ref_atual(), "codigoTipoVeiculo": TIPO_CARRO,
-                 "codigoMarca": cod_marca},
-            )
-            self._modelos[cod_marca] = resp.get("Modelos", [])
+            cat = _CATALOG.get(str(cod_marca))
+            if cat is not None:  # catálogo estático
+                self._modelos[cod_marca] = cat["modelos"]
+            else:
+                resp = self._post(
+                    "ConsultarModelos",
+                    {"codigoTabelaReferencia": self._ref_atual(),
+                     "codigoTipoVeiculo": TIPO_CARRO, "codigoMarca": cod_marca},
+                )
+                self._modelos[cod_marca] = resp.get("Modelos", [])
         return self._modelos[cod_marca]
 
     def _get_anos(self, cod_marca: int, cod_modelo: int) -> list[dict]:

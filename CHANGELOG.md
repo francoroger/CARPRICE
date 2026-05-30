@@ -9,6 +9,13 @@ A cada alteração: nova versão + entrada aqui + documentação atualizada + pu
 ## [Não lançado]
 - (próximas alterações entram aqui)
 
+## [0.5.2] - 2026-05-30
+### Added
+- **Catálogo FIPE estático** (`backend/app/data/fipe_modelos.json`, 107 marcas / 7273
+  modelos) embutido no backend. Os dropdowns marca→modelo→versão passam a usar esse
+  catálogo, então **funcionam mesmo no Render** (a FIPE oficial bloqueia IP de
+  datacenter). O valor/preço FIPE continua sendo consultado ao vivo quando disponível.
+
 ## [0.5.1] - 2026-05-30
 ### Fixed
 - **Backend no Render não coletava nada** (busca e FIPE retornavam 0/erro): faltava o
