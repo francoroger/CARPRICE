@@ -7,10 +7,10 @@
   command = "npm run build"
   publish = "dist"
 
-# >>> TROQUE pela URL do seu backend após deployá-lo (ex.: Render) <<<
+# Backend do usuário no Render (proxy — sem CORS):
 [[redirects]]
   from = "/api/*"
-  to = "https://carprice-api.onrender.com/api/:splat"
+  to = "https://carprice-api-8xur.onrender.com/api/:splat"
   status = 200
   force = true
 

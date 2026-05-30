@@ -9,6 +9,15 @@ A cada alteração: nova versão + entrada aqui + documentação atualizada + pu
 ## [Não lançado]
 - (próximas alterações entram aqui)
 
+## [0.5.1] - 2026-05-30
+### Fixed
+- **Backend no Render não coletava nada** (busca e FIPE retornavam 0/erro): faltava o
+  pacote **`h2`** no `requirements.txt` (os fetchers usam `http2=True`). Adicionado
+  `httpx[http2]` + `h2`. Confirmado que NÃO era bloqueio de IP do datacenter.
+### Changed
+- `netlify.toml`: redirect `/api/*` apontado para o backend real
+  `https://carprice-api-8xur.onrender.com`.
+
 ## [0.5.0] - 2026-05-30
 ### Added
 - **Versionamento + documentação**: `VERSION`, este `CHANGELOG.md` e `docs/ARCHITECTURE.md`.
