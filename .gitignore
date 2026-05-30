@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.db
+backend/_alembic_tmp.db
+backend/uvicorn*.log
+.env
+.env.local
+
+# Node / frontend
+node_modules/
+dist/
+*.local
+
+# Playwright (spike) — não vai pro deploy
+ms-playwright/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code local
+.claude/

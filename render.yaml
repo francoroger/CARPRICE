@@ -1,0 +1,25 @@
+# Deploy do BACKEND (FastAPI) no Render (https://render.com) — blueprint.
+# Render → New → Blueprint → aponta pro repo. Cria o serviço automaticamente.
+# A busca usa só httpx (Nível 1), então NÃO precisa de Playwright/navegador aqui.
+services:
+  - type: web
+    name: carprice-api
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.3"
+      - key: PYTHONPATH
+        value: "."
+      - key: SCHEDULER_ENABLED
+        value: "false"          # free tier hiberna; busca é on-demand
+      - key: CORS_ORIGINS
+        value: "*"
+      # Banco: SQLite por padrão (efêmero no free — reseta a cada deploy).
+      # Para persistir monitores, crie um Postgres no Render e cole a URL aqui:
+      # - key: DATABASE_URL
+      #   value: postgresql+psycopg2://...

@@ -1,0 +1,21 @@
+# Deploy do FRONTEND (React/Vite) no Netlify.
+# O Netlify serve só o site estático; as chamadas /api são repassadas (proxy)
+# para o backend Python hospedado à parte (Render/Railway) — sem CORS.
+
+[build]
+  base = "frontend"
+  command = "npm run build"
+  publish = "dist"
+
+# >>> TROQUE pela URL do seu backend após deployá-lo (ex.: Render) <<<
+[[redirects]]
+  from = "/api/*"
+  to = "https://carprice-api.onrender.com/api/:splat"
+  status = 200
+  force = true
+
+# SPA: qualquer outra rota cai no index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

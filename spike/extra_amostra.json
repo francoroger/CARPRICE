@@ -1,0 +1,547 @@
+{
+  "Napista": [
+    {
+      "titulo": "Chevrolet Spin Premier 1.8 8v Econo.flex 5p Aut. R$ 78.399 2023 84.913",
+      "link": "https://napista.com.br/anuncios/dc1d7360-e272-44e7-b93e-8868c0095e0d",
+      "preco": 78399,
+      "km": 84913,
+      "ano": 2023
+    },
+    {
+      "titulo": "Fiat Uno Vivace/rua 1.0 Evo Fire Flex 8v 5p R$ 27.699 2013 112.546 km ",
+      "link": "https://napista.com.br/anuncios/31f26682-d98e-4bac-bd79-e48e5c4a7677",
+      "preco": 27699,
+      "km": 112546,
+      "ano": 2013
+    },
+    {
+      "titulo": "Fiat Argo Drive 1.0 6v Flex R$ 46.999 2020 75.743 km Limeira, SP",
+      "link": "https://napista.com.br/anuncios/ec5e71a0-af25-42a6-af74-bed5f2bdf8ab",
+      "preco": 46999,
+      "km": 75743,
+      "ano": 2020
+    },
+    {
+      "titulo": "Chevrolet Onix Sedan Plus 1.0 12v Tb Flex Aut. R$ 59.800 2021 117.000 ",
+      "link": "https://napista.com.br/anuncios/5254b096-f446-4924-a99b-d4cc5f7dbecf",
+      "preco": 59800,
+      "km": 117000,
+      "ano": 2021
+    },
+    {
+      "titulo": "Bmw 118ia/urban/sport 1.6 Tb 16v 170cv 5p R$ 65.800 2012 153.000 km Bo",
+      "link": "https://napista.com.br/anuncios/7d02d109-dbc9-4f06-8de0-c6a3ff457e36",
+      "preco": 65800,
+      "km": 153000,
+      "ano": 2012
+    },
+    {
+      "titulo": "Jeep Compass 2.0 Longitude Auto R$ 93.899 2021 98.491 km Limeira, SP",
+      "link": "https://napista.com.br/anuncios/a3b87c2c-32bf-4e8f-b529-f419c9c3c29c",
+      "preco": 93899,
+      "km": 98491,
+      "ano": 2021
+    },
+    {
+      "titulo": "Chevrolet Tracker 1.0 Turbo Lt Auto R$ 93.899 2024 50.792 km Limeira, ",
+      "link": "https://napista.com.br/anuncios/6344c8da-31c9-4b62-8be1-c607e6ffe915",
+      "preco": 93899,
+      "km": 50792,
+      "ano": 2024
+    },
+    {
+      "titulo": "Peugeot 2008 1.6 Allure Pack Auto R$ 58.899 2022 72.581 km Limeira, SP",
+      "link": "https://napista.com.br/anuncios/db96efce-5d5d-456e-ae88-2285733171e0",
+      "preco": 58899,
+      "km": 72581,
+      "ano": 2008
+    },
+    {
+      "titulo": "Fiat Uno Attractive 1.0 Fire Flex 8v 5p R$ 34.199 2020 89.037 km Limei",
+      "link": "https://napista.com.br/anuncios/e482ed41-f17c-4324-a785-ca487998055e",
+      "preco": 34199,
+      "km": 89037,
+      "ano": 2020
+    },
+    {
+      "titulo": "Fiat Argo 1.0 6v Flex. R$ 53.599 2023 41.339 km Limeira, SP",
+      "link": "https://napista.com.br/anuncios/f7b3dd75-16eb-41fb-91dc-0adf46ea7b65",
+      "preco": 53599,
+      "km": 41339,
+      "ano": 2023
+    },
+    {
+      "titulo": "Chevrolet Montana 1.4 Econoflex Ls R$ 46.299 2019 72 km Limeira, SP",
+      "link": "https://napista.com.br/anuncios/f94753d4-e1ae-4dc4-85f2-264aafea9d06",
+      "preco": 46299,
+      "km": 72,
+      "ano": 2019
+    },
+    {
+      "titulo": "Ford Ka 1.0 Flex Se R$ 36.599 2015 103.333 km Limeira, SP",
+      "link": "https://napista.com.br/anuncios/ded33d27-791f-4d82-b436-a2696229960d",
+      "preco": 36599,
+      "km": 103333,
+      "ano": 2015
+    },
+    {
+      "titulo": "Fiat Cronos 1.3 Drive R$ 69.099 2024 65.678 km Limeira, SP",
+      "link": "https://napista.com.br/anuncios/ddc4051e-916e-4326-b2d3-4d7326ce52f0",
+      "preco": 69099,
+      "km": 65678,
+      "ano": 2024
+    },
+    {
+      "titulo": "Mercedes-benz Glc 300 Coupe 4matic 2.0 Tb 16v Aut. R$ 189.800 2019 138",
+      "link": "https://napista.com.br/anuncios/c22f8f49-ce1b-4d68-be3c-6bb4072ce901",
+      "preco": 189800,
+      "km": 138000,
+      "ano": 2019
+    },
+    {
+      "titulo": "Honda Civic Sedan Lxr 2.0 Flexone 16v Aut. 4p R$ 77.990 2015 151.894 k",
+      "link": "https://napista.com.br/anuncios/bce8982a-6297-4d92-826b-0e84e8325608",
+      "preco": 77990,
+      "km": 151894,
+      "ano": 2015
+    },
+    {
+      "titulo": "Fiat Strada 1.4 Mpi Fire Flex 8v Cs R$ 74.900 2023 78.361 km Ribeirão ",
+      "link": "https://napista.com.br/anuncios/de628b7c-0985-48d0-8d26-49a997b68e92",
+      "preco": 74900,
+      "km": 78361,
+      "ano": 2023
+    },
+    {
+      "titulo": "Volkswagen Gol 1.0 Tec Total Flex Trendline R$ 26.899 2015 17.765 km L",
+      "link": "https://napista.com.br/anuncios/83e1ef63-8493-4f5c-b6ca-99b55e2db78c",
+      "preco": 26899,
+      "km": 17765,
+      "ano": 2015
+    },
+    {
+      "titulo": "Hyundai Hr 2.5 Tci Diesel (rs/rd) R$ 87.500 2014 321.547 km Uberaba, M",
+      "link": "https://napista.com.br/anuncios/b43a716a-ba6b-4664-86b8-d04a168e537f",
+      "preco": 87500,
+      "km": 321547,
+      "ano": 2014
+    },
+    {
+      "titulo": "Chevrolet Montana 1.2 Turbo Lt R$ 91.899 2024 51.546 km Limeira, SP",
+      "link": "https://napista.com.br/anuncios/1aa22e2a-01cf-47e1-8cfb-5fced47ffeaa",
+      "preco": 91899,
+      "km": 51546,
+      "ano": 2024
+    },
+    {
+      "titulo": "Fiat Uno Way Celeb. 1.0 Evo Fire Flex 8v 5p R$ 36.900 2013 160.026 km ",
+      "link": "https://napista.com.br/anuncios/2b07ec97-763b-46a0-ba21-eda592f15e9f",
+      "preco": 36900,
+      "km": 160026,
+      "ano": 2013
+    },
+    {
+      "titulo": "Hyundai Hb20 Sense 1.0 Flex 12v Mec. R$ 71.800 2025 55.000 km Boituva,",
+      "link": "https://napista.com.br/anuncios/11eaebf5-2907-4a05-bc67-54e3f99eee84",
+      "preco": 71800,
+      "km": 55000,
+      "ano": 2025
+    },
+    {
+      "titulo": "Peugeot Partner Rapid 1.4 Business Pack R$ 64.399 2023 86.695 km Limei",
+      "link": "https://napista.com.br/anuncios/146b3f2b-8b58-43ac-a5ff-8db19d06d786",
+      "preco": 64399,
+      "km": 86695,
+      "ano": 2023
+    },
+    {
+      "titulo": "Renault Logan Zen Flex 1.0 12v 4p Mec. R$ 44.417 2020 55 km Limeira, S",
+      "link": "https://napista.com.br/anuncios/e20933fa-107d-41e2-b4fd-ef5cd459cd0c",
+      "preco": 44417,
+      "km": 55,
+      "ano": 2020
+    },
+    {
+      "titulo": "Fiat Uno 1.0 Attractive R$ 40.299 2021 83.780 km Limeira, SP",
+      "link": "https://napista.com.br/anuncios/b9b05a4b-1968-44d9-ba5d-f744a68d33ca",
+      "preco": 40299,
+      "km": 83780,
+      "ano": 2021
+    },
+    {
+      "titulo": "Hyundai Hb20 Comfort 1.0 Tb Flex 12v Mec R$ 59.899 2023 40.104 km Lime",
+      "link": "https://napista.com.br/anuncios/686ad3a3-d136-408b-b3b3-4d77bcb5d8cf",
+      "preco": 59899,
+      "km": 40104,
+      "ano": 2023
+    },
+    {
+      "titulo": "Fiat Strada Working Hard 1.4 Fire Flex 8v Cd R$ 59.799 2020 181.883 km",
+      "link": "https://napista.com.br/anuncios/d91333d3-49ec-4330-8bf6-c0716461d907",
+      "preco": 59799,
+      "km": 181883,
+      "ano": 2020
+    },
+    {
+      "titulo": "Volkswagen Fox Trendline 1.0 Flex 12v 5p R$ 42.499 2017 64.923 km Lime",
+      "link": "https://napista.com.br/anuncios/6df31088-f840-4457-9640-1ff193f3a2a2",
+      "preco": 42499,
+      "km": 64923,
+      "ano": 2017
+    },
+    {
+      "titulo": "Chevrolet Prisma Sed. Lt 1.4 8v Flexpower 4p R$ 49.800 2013 127.400 km",
+      "link": "https://napista.com.br/anuncios/7f589d98-546f-4334-ad01-4373c276b15f",
+      "preco": 49800,
+      "km": 127400,
+      "ano": 2013
+    },
+    {
+      "titulo": "Peugeot Partner Rapid 1.4 Business Pack R$ 75.199 2024 61.298 km Limei",
+      "link": "https://napista.com.br/anuncios/3e3c63bd-b784-472f-a000-939e4f8ec9b8",
+      "preco": 75199,
+      "km": 61298,
+      "ano": 2024
+    },
+    {
+      "titulo": "Ford Ka 1.0 Freestyle R$ 50.900 2020 190.000 km Contagem, MG",
+      "link": "https://napista.com.br/anuncios/d55e55c7-edcb-4f63-a551-089ad8170ae1",
+      "preco": 50900,
+      "km": 190000,
+      "ano": 2020
+    },
+    {
+      "titulo": "Chevrolet Onix 1.0 Turbo Lt R$ 70.199 2024 57.362 km Limeira, SP",
+      "link": "https://napista.com.br/anuncios/7a9e9e16-a244-4aff-8592-13f800870ba9",
+      "preco": 70199,
+      "km": 57362,
+      "ano": 2024
+    },
+    {
+      "titulo": "Fiat Cronos 1.3 Drive R$ 69.099 2024 92.098 km Limeira, SP",
+      "link": "https://napista.com.br/anuncios/ed0f8c36-0160-4d24-bbfe-ed4ed11ee030",
+      "preco": 69099,
+      "km": 92098,
+      "ano": 2024
+    },
+    {
+      "titulo": "Peugeot 208 Active 1.6 Flex 16v 5p Aut. R$ 60.599 2022 41.186 km Limei",
+      "link": "https://napista.com.br/anuncios/897f05a1-3dc5-4441-a1e1-4e67d4ff2ed5",
+      "preco": 60599,
+      "km": 41186,
+      "ano": 2022
+    },
+    {
+      "titulo": "Nissan Kicks Advance 1.6 16v Flex Aut. R$ 82.999 2022 191 km Limeira, ",
+      "link": "https://napista.com.br/anuncios/f60f63d6-38f0-4d30-bf00-dad9cb4ce14c",
+      "preco": 82999,
+      "km": 191,
+      "ano": 2022
+    },
+    {
+      "titulo": "Toyota Corolla Cross 2.0 Xre Cvt R$ 139.900 2022 46.051 km Contagem, M",
+      "link": "https://napista.com.br/anuncios/0d1cd35d-f1bf-4176-ab04-a3aee22e1ec6",
+      "preco": 139900,
+      "km": 46051,
+      "ano": 2022
+    },
+    {
+      "titulo": "Chevrolet Onix Plus 1.0 Turbo Lt R$ 79.900 2024 31.000 km Contagem, MG",
+      "link": "https://napista.com.br/anuncios/aff6c0f0-bc63-455a-a84b-d1d90f72225a",
+      "preco": 79900,
+      "km": 31000,
+      "ano": 2024
+    },
+    {
+      "titulo": "Renault Logan 1.0 Authentique R$ 42.900 2018 95.000 km Jundiaí, SP",
+      "link": "https://napista.com.br/anuncios/845b7296-c9fc-4dc5-8bc2-c2869cc12bb4",
+      "preco": 42900,
+      "km": 95000,
+      "ano": 2018
+    },
+    {
+      "titulo": "Chevrolet Spin 1.8 Econoflex Ls 5s R$ 55.099 2022 41.172 km Limeira, S",
+      "link": "https://napista.com.br/anuncios/359b9d95-17cd-4c06-959a-01b19241361d",
+      "preco": 55099,
+      "km": 41172,
+      "ano": 2022
+    },
+    {
+      "titulo": "Fiat Strada Working Hard 1.4 Fire Flex 8v Cd R$ 59.799 2020 235.264 km",
+      "link": "https://napista.com.br/anuncios/4c476db1-451e-4341-be82-7fa08138eaa1",
+      "preco": 59799,
+      "km": 235264,
+      "ano": 2020
+    },
+    {
+      "titulo": "Chevrolet Onix 1.0 Lt R$ 58.999 2023 71.833 km Limeira, SP",
+      "link": "https://napista.com.br/anuncios/5e62ee7f-bfe6-4b59-b480-f11f33857c88",
+      "preco": 58999,
+      "km": 71833,
+      "ano": 2023
+    },
+    {
+      "titulo": "Fiat Uno 1.0 Attractive R$ 40.299 2021 90.513 km Limeira, SP",
+      "link": "https://napista.com.br/anuncios/7d6b8bd3-3320-409f-be9d-154a23d8ab52",
+      "preco": 40299,
+      "km": 90513,
+      "ano": 2021
+    },
+    {
+      "titulo": "Fiat Cronos Drive 1.3 8v Flex R$ 65.399 2023 76.411 km Limeira, SP",
+      "link": "https://napista.com.br/anuncios/2fe4f4d5-6b69-498d-826c-67249c0c6b17",
+      "preco": 65399,
+      "km": 76411,
+      "ano": 2023
+    },
+    {
+      "titulo": "Jeep Compass 1.3 T270 Longitude Auto R$ 111.299 2022 45.949 km Limeira",
+      "link": "https://napista.com.br/anuncios/06473309-bb63-46b3-9af6-3fcdcc70ddb3",
+      "preco": 111299,
+      "km": 45949,
+      "ano": 2022
+    },
+    {
+      "titulo": "Chevrolet Onix Plus 1.0 Turbo Ltz Auto R$ 68.799 2023 88.618 km Limeir",
+      "link": "https://napista.com.br/anuncios/f924c35a-bd8f-4c02-9da1-31f78d40df6a",
+      "preco": 68799,
+      "km": 88618,
+      "ano": 2023
+    },
+    {
+      "titulo": "Peugeot 208 1.0 Like R$ 52.399 2023 411.157 km Limeira, SP",
+      "link": "https://napista.com.br/anuncios/62dcdbce-69dc-4620-a241-668756db9558",
+      "preco": 52399,
+      "km": 411157,
+      "ano": 2023
+    },
+    {
+      "titulo": "Hyundai Hb20x Style 1.6 Flex 16v Mec. R$ 69.800 2018 110.000 km Boituv",
+      "link": "https://napista.com.br/anuncios/2dad0e1c-28e6-48e2-b557-5a95f5b2e675",
+      "preco": 69800,
+      "km": 110000,
+      "ano": 2018
+    },
+    {
+      "titulo": "Volkswagen Nivus 1.0 200 Tsi Comfortline Auto R$ 92.399 2024 11.907 km",
+      "link": "https://napista.com.br/anuncios/0b957d78-5a3a-4fbc-a6de-24384bb73f02",
+      "preco": 92399,
+      "km": 11907,
+      "ano": 2024
+    },
+    {
+      "titulo": "Fiat Uno 1.0 Attractive R$ 40.299 2021 113.389 km Limeira, SP",
+      "link": "https://napista.com.br/anuncios/03ca2c85-122e-4a80-a7db-c9a81ee01077",
+      "preco": 40299,
+      "km": 113389,
+      "ano": 2021
+    }
+  ],
+  "Comprecar": [
+    {
+      "titulo": "Próxima Anterior Volkswagen NIVUS 1.0 200 TSI Comfortline 2023 Bexp Je",
+      "link": "https://www.comprecar.com.br/carros-usados/sao-paulo/nivus-10-200-tsi-comfortline-2415167",
+      "preco": 99890,
+      "km": 28000,
+      "ano": 2023
+    },
+    {
+      "titulo": "Próxima Anterior Hyundai HB20S 1.0 Tgdi Comfort Plus 2024 Bexp Jeep An",
+      "link": "https://www.comprecar.com.br/carros-usados/sao-paulo/hb20s-10-tgdi-comfort-plus-2414139",
+      "preco": 85890,
+      "km": 36157,
+      "ano": 2024
+    },
+    {
+      "titulo": "Próxima Anterior Volkswagen TERA 1.0 170 TSI High 2026 AG PICK-UPS Anú",
+      "link": "https://www.comprecar.com.br/carros-usados/sao-paulo/tera-10-170-tsi-high-2414084",
+      "preco": 135800,
+      "km": 6952,
+      "ano": 2026
+    },
+    {
+      "titulo": "Próxima Anterior CHERY TIGGO 5X PRO 1.5 TCI Hybrid 2023 AG PICK-UPS An",
+      "link": "https://www.comprecar.com.br/carros-usados/sao-paulo/tiggo-5x-pro-15-tci-hybrid-2414063",
+      "preco": 119800,
+      "km": 17770,
+      "ano": 2023
+    },
+    {
+      "titulo": "Próxima Anterior CHEVROLET ONIX 1.0 Turbo Plus LTZ 2026 AG PICK-UPS An",
+      "link": "https://www.comprecar.com.br/carros-usados/sao-paulo/onix-10-turbo-plus-ltz-2414021",
+      "preco": 74800,
+      "km": 54798,
+      "ano": 2026
+    },
+    {
+      "titulo": "Próxima Anterior Fiat FASTBACK 1.0 Turbo 200 Audace 2024 Bexp Jeep Anú",
+      "link": "https://www.comprecar.com.br/carros-usados/sao-paulo/fastback-10-turbo-200-audace-2413474",
+      "preco": 109890,
+      "km": 27823,
+      "ano": 2024
+    },
+    {
+      "titulo": "Próxima Anterior JEEP COMPASS 2.0 Hurricane 4 Turbo Blackhawk 2026 Bex",
+      "link": "https://www.comprecar.com.br/carros-usados/sao-paulo/compass-20-hurricane-4-turbo-blackhawk-2412113",
+      "preco": 245890,
+      "km": 450,
+      "ano": 2026
+    },
+    {
+      "titulo": "Próxima Anterior JEEP RENEGADE 1.3 T270 Turbo Longitude 2025 Bexp Jeep",
+      "link": "https://www.comprecar.com.br/carros-usados/sao-paulo/renegade-13-t270-turbo-longitude-2412111",
+      "preco": 116890,
+      "km": 23700,
+      "ano": 2025
+    },
+    {
+      "titulo": "Próxima Anterior JEEP COMMANDER 1.3 T270 Turbo Overland 2026 Bexp Jeep",
+      "link": "https://www.comprecar.com.br/carros-usados/sao-paulo/commander-13-t270-turbo-overland-2411380",
+      "preco": 245890,
+      "km": 8136,
+      "ano": 2026
+    },
+    {
+      "titulo": "Próxima Anterior Hyundai CRETA 1.0 Tgdi N Line 2024 Bexp Jeep Anúncio ",
+      "link": "https://www.comprecar.com.br/carros-usados/sao-paulo/creta-10-tgdi-n-line-2411237",
+      "preco": 138890,
+      "km": 28112,
+      "ano": 2024
+    },
+    {
+      "titulo": "Próxima Anterior Toyota HILUX 3.0 SRV 4X4 CD 16V Turbo Intercooler 201",
+      "link": "https://www.comprecar.com.br/carros-usados/sao-paulo/hilux-30-srv-4x4-cd-16v-turbo-intercooler-2411221",
+      "preco": 129800,
+      "km": 170482,
+      "ano": 2012
+    },
+    {
+      "titulo": "Próxima Anterior Hyundai HB20 1.0 Tgdi Platinum 2026 AG PICK-UPS Anúnc",
+      "link": "https://www.comprecar.com.br/carros-usados/sao-paulo/hb20-10-tgdi-platinum-2411214",
+      "preco": 109800,
+      "km": 6144,
+      "ano": 2026
+    },
+    {
+      "titulo": "Próxima Anterior Honda HR-V 1.5 DI I-vtec EX 2024 Bexp Jeep Anúncio co",
+      "link": "https://www.comprecar.com.br/carros-usados/sao-paulo/hr-v-15-di-i-vtec-ex-2411145",
+      "preco": 134890,
+      "km": 63190,
+      "ano": 2024
+    },
+    {
+      "titulo": "Próxima Anterior NISSAN FRONTIER 2.3 16V Turbo LE CD 4X4 2021 AG PICK-",
+      "link": "https://www.comprecar.com.br/carros-usados/sao-paulo/frontier-23-16v-turbo-le-cd-4x4-2407310",
+      "preco": 164800,
+      "km": 46361,
+      "ano": 2021
+    },
+    {
+      "titulo": "Próxima Anterior FORD F-150 5.0 V8 CD Lariat FX4 2024 AG PICK-UPS Anún",
+      "link": "https://www.comprecar.com.br/carros-usados/sao-paulo/f-150-50-v8-cd-lariat-fx4-2406348",
+      "preco": 489800,
+      "km": 17000,
+      "ano": 2024
+    },
+    {
+      "titulo": "Próxima Anterior Mitsubishi ECLIPSE CROSS 1.5 Mivec Turbo Hpe-s 2025 B",
+      "link": "https://www.comprecar.com.br/carros-usados/sao-paulo/eclipse-cross-15-mivec-turbo-hpe-s-2406321",
+      "preco": 171890,
+      "km": 25000,
+      "ano": 2025
+    },
+    {
+      "titulo": "Próxima Anterior Kia SPORTAGE 1.6 Tgdi Mhev EX Prestige 2024 AG PICK-U",
+      "link": "https://www.comprecar.com.br/carros-usados/sao-paulo/sportage-16-tgdi-mhev-ex-prestige-2405231",
+      "preco": 239800,
+      "km": 28684,
+      "ano": 2024
+    },
+    {
+      "titulo": "Próxima Anterior JEEP COMMANDER 2.0 Td380 Turbo Overland 2023 Bexp Jee",
+      "link": "https://www.comprecar.com.br/carros-usados/sao-paulo/commander-20-td380-turbo-overland-2403798",
+      "preco": 183890,
+      "km": 28568,
+      "ano": 2023
+    },
+    {
+      "titulo": "Próxima Anterior CHEVROLET BLAZER 4.3 SFI DLX Executive 4X4 V6 12V 199",
+      "link": "https://www.comprecar.com.br/carros-usados/sao-paulo/blazer-43-sfi-dlx-executive-4x4-v6-12v-2403629",
+      "preco": 79800,
+      "km": 20532,
+      "ano": 1998
+    },
+    {
+      "titulo": "Próxima Anterior Audi A4 2.0 TFSI Ambiente Avant S Tronic 2018 AG PICK",
+      "link": "https://www.comprecar.com.br/carros-usados/sao-paulo/a4-20-tfsi-ambiente-avant-s-tronic-2403015",
+      "preco": 139800,
+      "km": 35331,
+      "ano": 2018
+    },
+    {
+      "titulo": "Próxima Anterior Volkswagen GOLF 1.6 MI 8V 2012 Bruno Anúncio com víde",
+      "link": "https://www.comprecar.com.br/carros-usados/sao-paulo/golf-16-mi-8v-2402148",
+      "preco": 54900,
+      "km": 158500,
+      "ano": 2012
+    },
+    {
+      "titulo": "Próxima Anterior BMW X6 4.4 V8 Biturbo M Competition 2022 AG PICK-UPS ",
+      "link": "https://www.comprecar.com.br/carros-usados/sao-paulo/x6-44-v8-biturbo-m-competition-2401976",
+      "preco": 679800,
+      "km": 50875,
+      "ano": 2022
+    },
+    {
+      "titulo": "Próxima Anterior Fiat STRADA 1.0 Turbo 200 Ultra CD 2025 AG PICK-UPS A",
+      "link": "https://www.comprecar.com.br/carros-usados/sao-paulo/strada-10-turbo-200-ultra-cd-2401876",
+      "preco": 129800,
+      "km": 12523,
+      "ano": 2025
+    },
+    {
+      "titulo": "Próxima Anterior JEEP RENEGADE 1.3 T270 Turbo Longitude 2024 Bexp Jeep",
+      "link": "https://www.comprecar.com.br/carros-usados/sao-paulo/renegade-13-t270-turbo-longitude-2401001",
+      "preco": 106890,
+      "km": 25000,
+      "ano": 2024
+    }
+  ],
+  "Localiza": [
+    {
+      "titulo": "Mais pesquisado Foto 360º CHEVROLET ONIX LT 1.0 12V FLEX MANUAL 42.640",
+      "link": "https://seminovos.localiza.com/detalhes-carro/chevrolet-onix-lt-10-12v-flex-manual-405605",
+      "preco": 74490,
+      "km": 42640,
+      "ano": 2025
+    },
+    {
+      "titulo": "Foto 360º CHEVROLET ONIX PLUS LTZ 1.0 12V TURBO FLEX AUTOMATICO 36.704",
+      "link": "https://seminovos.localiza.com/detalhes-carro/chevrolet-onix-plus-ltz-10-12v-turbo-flex-automatico-406130",
+      "preco": 98490,
+      "km": 36704,
+      "ano": 2025
+    },
+    {
+      "titulo": "Mais pesquisado Foto 360º CITROEN C3 LIVE PACK 1.0 6V FLEX MANUAL 42.9",
+      "link": "https://seminovos.localiza.com/detalhes-carro/citroen-c3-live-pack-10-6v-flex-manual-406270",
+      "preco": 70990,
+      "km": 42971,
+      "ano": 2025
+    },
+    {
+      "titulo": "Foto 360º CHEVROLET ONIX LT 1.0 12V FLEX MANUAL 41.867 km 2024/2025 MA",
+      "link": "https://seminovos.localiza.com/detalhes-carro/chevrolet-onix-lt-10-12v-flex-manual-406335",
+      "preco": 74490,
+      "km": 41867,
+      "ano": 2025
+    },
+    {
+      "titulo": "Foto 360º JEEP COMPASS LONGITUDE 1.3 16V TURBO 270 FLEX AUTOMATICO 40.",
+      "link": "https://seminovos.localiza.com/detalhes-carro/jeep-compass-longitude-13-16v-turbo-270-flex-automatico-406643",
+      "preco": 148990,
+      "km": 40479,
+      "ano": 2025
+    }
+  ]
+}
