@@ -76,7 +76,7 @@ class FipeClient:
     """Resolve valores FIPE reaproveitando 1 conexão e caches por tabela de referência."""
 
     def __init__(self) -> None:
-        self._client = httpx.Client(headers=_HEADERS, timeout=20, http2=True)
+        self._client = httpx.Client(headers=_HEADERS, timeout=8, http2=True)
         self._ref: int | None = None
         self._ref_mes: str | None = None
         self._marcas: list[dict] | None = None

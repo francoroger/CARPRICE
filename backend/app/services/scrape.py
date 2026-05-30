@@ -35,7 +35,7 @@ from app.models import (
     VehicleListing,
 )
 from app.services import notifications
-from app.services.fipe import FipeClient, valor_fipe
+from app.services.fipe import FipeClient, get_fipe_client, valor_fipe
 from app.services.filters import passa_filtros
 from app.services.scoring import ScoreInput, ScoreParams, calcular_scores, faixa_de_km
 from app.services.settings_service import get_score_params
@@ -241,20 +241,18 @@ def _score_focado(db: Session, listings: list[VehicleListing], params: ScorePara
     # FIPE só p/ grupos pequenos, UMA vez por grupo e com teto (evita lentidão/403)
     MAX_FIPE = 12
     fipe_por_grupo: dict[str, int | None] = {}
-    fc = FipeClient()
-    try:
-        usa_fipe = fc.valor_disponivel()  # no Render a FIPE bloqueia → pula (rápido)
-        resolvidos = 0
-        for chave, grp in grupos.items():
-            if len(grp) >= params.min_grupo:
-                continue  # tem volume → MERCADO, sem FIPE
-            rep = grp[0]
-            if usa_fipe and resolvidos < MAX_FIPE and rep.marca and rep.ano_modelo:
-                val, _cod = fc.resolver(rep.marca, rep.modelo, rep.ano_modelo, rep.versao)
-                fipe_por_grupo[chave] = val
-                resolvidos += 1
-    finally:
-        fc.close()
+    # singleton: cacheia a indisponibilidade da FIPE entre buscas (não fecha)
+    fc = get_fipe_client()
+    usa_fipe = fc.valor_disponivel()  # no Render a FIPE bloqueia → pula (rápido)
+    resolvidos = 0
+    for chave, grp in grupos.items():
+        if len(grp) >= params.min_grupo:
+            continue  # tem volume → MERCADO, sem FIPE
+        rep = grp[0]
+        if usa_fipe and resolvidos < MAX_FIPE and rep.marca and rep.ano_modelo:
+            val, _cod = fc.resolver(rep.marca, rep.modelo, rep.ano_modelo, rep.versao)
+            fipe_por_grupo[chave] = val
+            resolvidos += 1
 
     inputs = []
     for l in listings:

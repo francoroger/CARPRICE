@@ -9,6 +9,12 @@ A cada alteração: nova versão + entrada aqui + documentação atualizada + pu
 ## [Não lançado]
 - (próximas alterações entram aqui)
 
+## [0.5.7] - 2026-05-30
+### Changed
+- **Mais performance**: timeout da FIPE 20s→8s (fail-rápido quando bloqueada) e a
+  indisponibilidade passa a ser cacheada no singleton (não re-sonda a FIPE a cada
+  busca). Reduz o tempo da busca no Render.
+
 ## [0.5.6] - 2026-05-30
 ### Changed
 - **Performance da busca** (~2min → segundos):
