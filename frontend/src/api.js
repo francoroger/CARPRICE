@@ -1,5 +1,8 @@
-// Cliente da API. Usa caminho relativo /api (proxy do Vite → backend:8000).
-const BASE = "";
+// Cliente da API.
+// - Dev: VITE_API_URL vazio → caminho relativo /api (proxy do Vite → backend:8000).
+// - Produção (Netlify): VITE_API_URL = URL do backend (Render) → chamada DIRETA
+//   (evita o timeout do proxy do Netlify nas buscas longas).
+const BASE = import.meta.env.VITE_API_URL || "";
 
 async function req(path, opts = {}) {
   const r = await fetch(BASE + path, {

@@ -9,6 +9,13 @@ A cada alteração: nova versão + entrada aqui + documentação atualizada + pu
 ## [Não lançado]
 - (próximas alterações entram aqui)
 
+## [0.5.3] - 2026-05-30
+### Changed
+- **Frontend chama o backend DIRETO** (via `VITE_API_URL`) em vez do proxy do Netlify,
+  evitando o timeout do proxy (~26s) nas buscas longas (~100s no Render free).
+- CORS do backend liberado (`allow_credentials=False`, origens via `CORS_ORIGINS`).
+- `netlify.toml`: injeta `VITE_API_URL` no build; removido o redirect `/api`.
+
 ## [0.5.2] - 2026-05-30
 ### Added
 - **Catálogo FIPE estático** (`backend/app/data/fipe_modelos.json`, 107 marcas / 7273

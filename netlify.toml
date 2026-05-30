@@ -1,20 +1,17 @@
 # Deploy do FRONTEND (React/Vite) no Netlify.
-# O Netlify serve só o site estático; as chamadas /api são repassadas (proxy)
-# para o backend Python hospedado à parte (Render/Railway) — sem CORS.
+# O frontend chama o backend (Render) DIRETO via VITE_API_URL — evita o timeout do
+# proxy do Netlify nas buscas longas (~100s). CORS liberado no backend.
 
 [build]
   base = "frontend"
   command = "npm run build"
   publish = "dist"
 
-# Backend do usuário no Render (proxy — sem CORS):
-[[redirects]]
-  from = "/api/*"
-  to = "https://carprice-api-8xur.onrender.com/api/:splat"
-  status = 200
-  force = true
+[build.environment]
+  # URL do backend no Render (trocar se mudar de host):
+  VITE_API_URL = "https://carprice-api-8xur.onrender.com"
 
-# SPA: qualquer outra rota cai no index.html
+# SPA: qualquer rota do front cai no index.html
 [[redirects]]
   from = "/*"
   to = "/index.html"
