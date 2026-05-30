@@ -1,0 +1,19 @@
+# KEEP-WARM (opcional) — mantém o backend do Render acordado p/ evitar o cold start (~50s).
+#
+# Como ativar (escolha 1):
+#  A) GitHub Actions: copie este conteúdo para .github/workflows/keepalive.yml
+#     pelo site do GitHub (Add file → Create new file) — o navegador não exige o
+#     escopo "workflow" do token. Ou edite seu PAT e marque o escopo "workflow".
+#  B) UptimeRobot (https://uptimerobot.com, grátis): crie um monitor HTTP(s) para
+#     https://carprice-api-8xur.onrender.com/api/health com intervalo de 5 min.
+#
+name: keep-warm
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -fsS -m 60 https://carprice-api-8xur.onrender.com/api/health || true

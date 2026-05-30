@@ -40,6 +40,16 @@ BASE = "https://veiculos.fipe.org.br/api/veiculos"
 TIPO_CARRO = 1
 # 2ª palavra que indica um MODELO distinto (não um trim) — ex.: Corolla CROSS, Onix PLUS.
 _SUBMODELOS = {"CROSS", "PLUS", "SW", "COUPE", "CABRIO", "CABRIOLET", "COUNTRY", "ADVENTURE"}
+# 2ª palavra que é TRIM (colapsa no 1º nome mesmo sendo a única do grupo).
+_TRIM_WORDS = {
+    "SPORT", "TOURING", "ADVANCE", "ADVANCED", "PREMIER", "PREMIUM", "COMFORT",
+    "COMFORTLINE", "HIGHLINE", "HIGH", "ESSENCE", "ATTRACTIVE", "ATTRACTIVE",
+    "EXCLUSIVE", "INTENSE", "FEEL", "LIVE", "SHINE", "TREND", "LIMITED", "ELITE",
+    "LUXURY", "ACTIVE", "ALLURE", "DYNAMIC", "STYLE", "EDITION", "SPECIAL",
+    "SELECT", "EVOLUTION", "GLAMOUR", "COLLECTION", "PERSONAL", "TWIST", "PRECISION",
+    "EMOTION", "EXPRESSION", "EXPERIENCE", "VISION", "SENSE", "DRIVE", "TURBO",
+    "AUTOMATICO", "FLEX", "LUXE", "LOUNGE", "ELEGANCE", "ULTIMATE", "DESIGN",
+}
 _HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                   "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
@@ -73,6 +83,7 @@ class FipeClient:
         self._modelos: dict[int, list[dict]] = {}     # codigoMarca -> modelos
         self._anos: dict[tuple[int, int], list[dict]] = {}
         self._modmap: dict[int, dict[str, str]] = {}  # codigoMarca -> {familia: modelo}
+        self._valor_ok: bool | None = None            # circuit-breaker do valor FIPE
 
     def close(self) -> None:
         self._client.close()
@@ -220,6 +231,21 @@ class FipeClient:
 
     # --- API pública para os filtros em cascata (marca → modelo → versão) --- #
 
+    def valor_disponivel(self) -> bool:
+        """True se a FIPE responde p/ consultar VALOR (ConsultarTabelaDeReferencia).
+
+        No Render a FIPE bloqueia o IP → False → o score pula a consulta de preço
+        (evita ~12s desperdiçados; usa só MERCADO). Testado uma vez e cacheado.
+        """
+        if self._valor_ok is None:
+            try:
+                self._ref_atual()
+                self._valor_ok = True
+            except Exception:
+                self._valor_ok = False
+                log.info("FIPE (valor) indisponível — score usará só MERCADO")
+        return self._valor_ok
+
     def marcas(self) -> list[dict]:
         """[{codigo, nome}] de todas as marcas (ordenado)."""
         return [
@@ -249,8 +275,9 @@ class FipeClient:
                     f2m[f] = primeira
                 elif seg in _SUBMODELOS:
                     f2m[f] = f"{primeira} {seg}"            # Corolla Cross, Onix Plus
-                elif len(segundos) == 1 and todos_compostos:
-                    f2m[f] = f"{primeira} {seg}"            # Grand Siena
+                elif (len(segundos) == 1 and todos_compostos
+                      and len(seg) >= 4 and seg not in _TRIM_WORDS):
+                    f2m[f] = f"{primeira} {seg}"            # Grand Siena, PT Cruiser
                 else:
                     f2m[f] = primeira                        # trim → colapsa
         self._modmap[cod_marca] = f2m

@@ -243,12 +243,13 @@ def _score_focado(db: Session, listings: list[VehicleListing], params: ScorePara
     fipe_por_grupo: dict[str, int | None] = {}
     fc = FipeClient()
     try:
+        usa_fipe = fc.valor_disponivel()  # no Render a FIPE bloqueia → pula (rápido)
         resolvidos = 0
         for chave, grp in grupos.items():
             if len(grp) >= params.min_grupo:
                 continue  # tem volume → MERCADO, sem FIPE
             rep = grp[0]
-            if resolvidos < MAX_FIPE and rep.marca and rep.ano_modelo:
+            if usa_fipe and resolvidos < MAX_FIPE and rep.marca and rep.ano_modelo:
                 val, _cod = fc.resolver(rep.marca, rep.modelo, rep.ano_modelo, rep.versao)
                 fipe_por_grupo[chave] = val
                 resolvidos += 1

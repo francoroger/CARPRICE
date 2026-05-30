@@ -9,6 +9,17 @@ A cada alteração: nova versão + entrada aqui + documentação atualizada + pu
 ## [Não lançado]
 - (próximas alterações entram aqui)
 
+## [0.5.6] - 2026-05-30
+### Changed
+- **Performance da busca** (~2min → segundos):
+  - GitHub Action `keep-warm` pinga o Render a cada 10min → mata o cold start (~50s).
+  - Paginação reduzida (CarroSP 20→8, Napista 8→5 páginas) — busca mais rápida.
+  - Circuit-breaker da FIPE: no Render (FIPE bloqueada) o score pula a consulta de
+    valor e usa só MERCADO (economiza ~12s).
+- **Colapso de modelo universal**: refinado p/ TODAS as marcas — trims curtos
+  (GS/GTI/LX) e palavras-trim (SPORT/TOURING/ADVANCE...) colapsam no nome do modelo;
+  compostos reais (GRAND SIENA, PT CRUISER) e sub-modelos (CROSS/PLUS) ficam.
+
 ## [0.5.5] - 2026-05-30
 ### Fixed
 - **Dropdown de Modelo ainda trazia trims** (FIT CX/DX/EX, CIVIC SEDAN, HR-V ADVANCE).

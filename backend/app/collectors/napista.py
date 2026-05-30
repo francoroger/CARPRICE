@@ -23,7 +23,7 @@ from app.collectors.base import (
 )
 
 BASE = "https://napista.com.br"
-MAX_PAGINAS = 8  # ?pn=N (8×48 ≈ 384 anúncios já é bastante)
+MAX_PAGINAS = 5  # ?pn=N (5×48 ≈ 240 anúncios; busca sequencial com early-stop)
 
 
 class NapistaConnector(PortalConnector):

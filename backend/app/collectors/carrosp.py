@@ -27,7 +27,7 @@ from app.collectors.base import (
 
 BASE = "https://www.carrosp.com.br"
 ITENS_POR_PAGINA = 21
-MAX_PAGINAS = 20  # teto p/ limitar tempo (≈420 anúncios por portal/busca)
+MAX_PAGINAS = 8  # teto p/ velocidade (≈170 anúncios); páginas buscadas em paralelo
 
 
 def _local(criteria: SearchCriteria) -> str:
