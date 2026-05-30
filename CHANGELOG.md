@@ -9,6 +9,13 @@ A cada alteração: nova versão + entrada aqui + documentação atualizada + pu
 ## [Não lançado]
 - (próximas alterações entram aqui)
 
+## [0.5.5] - 2026-05-30
+### Fixed
+- **Dropdown de Modelo ainda trazia trims** (FIT CX/DX/EX, CIVIC SEDAN, HR-V ADVANCE).
+  Nova lógica: modelo = 1ª palavra (FIT, CIVIC, HR-V), com exceções que preservam
+  modelos compostos reais — mesmo 2º nome em todo o grupo (GRAND SIENA) ou 2º nome
+  sub-modelo (Corolla CROSS, Onix PLUS, Corolla SW). Trims vão para o dropdown de Versão.
+
 ## [0.5.4] - 2026-05-30
 ### Added
 - **Site no ar**: https://pricecar.netlify.app (frontend Netlify + backend Render).

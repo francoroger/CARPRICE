@@ -38,6 +38,8 @@ except Exception as e:  # noqa: BLE001
 
 BASE = "https://veiculos.fipe.org.br/api/veiculos"
 TIPO_CARRO = 1
+# 2ª palavra que indica um MODELO distinto (não um trim) — ex.: Corolla CROSS, Onix PLUS.
+_SUBMODELOS = {"CROSS", "PLUS", "SW", "COUPE", "CABRIO", "CABRIOLET", "COUNTRY", "ADVENTURE"}
 _HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                   "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
@@ -70,6 +72,7 @@ class FipeClient:
         self._marcas: list[dict] | None = None
         self._modelos: dict[int, list[dict]] = {}     # codigoMarca -> modelos
         self._anos: dict[tuple[int, int], list[dict]] = {}
+        self._modmap: dict[int, dict[str, str]] = {}  # codigoMarca -> {familia: modelo}
 
     def close(self) -> None:
         self._client.close()
@@ -224,24 +227,46 @@ class FipeClient:
             for m in sorted(self._get_marcas(), key=lambda x: x["Label"])
         ]
 
+    def _familia_para_modelo(self, cod_marca: int) -> dict[str, str]:
+        """Mapa família→MODELO. Colapsa trims na 1ª palavra (FIT CX/DX → FIT),
+        mas preserva modelos compostos reais: mesmo 2º nome em todo o grupo
+        (GRAND SIENA) ou 2º nome sub-modelo (Corolla CROSS, Onix PLUS)."""
+        if cod_marca in self._modmap:
+            return self._modmap[cod_marca]
+        fams = {familia_do_label(m["Label"]) for m in self._get_modelos(cod_marca)}
+        por_1a: dict[str, set] = {}
+        for f in fams:
+            por_1a.setdefault(f.split()[0], set()).add(f)
+
+        f2m: dict[str, str] = {}
+        for primeira, grupo in por_1a.items():
+            segundos = {f.split()[1] for f in grupo if len(f.split()) > 1}
+            todos_compostos = all(len(f.split()) > 1 for f in grupo)
+            for f in grupo:
+                partes = f.split()
+                seg = partes[1] if len(partes) > 1 else ""
+                if not seg:
+                    f2m[f] = primeira
+                elif seg in _SUBMODELOS:
+                    f2m[f] = f"{primeira} {seg}"            # Corolla Cross, Onix Plus
+                elif len(segundos) == 1 and todos_compostos:
+                    f2m[f] = f"{primeira} {seg}"            # Grand Siena
+                else:
+                    f2m[f] = primeira                        # trim → colapsa
+        self._modmap[cod_marca] = f2m
+        return f2m
+
     def modelos_familias(self, cod_marca: int) -> list[str]:
-        """Apenas os MODELOS base (ex.: 'T-CROSS', 'GRAND SIENA') — sem os trims.
+        """Apenas os MODELOS (ex.: FIT, CIVIC, HR-V, COROLLA, COROLLA CROSS) — sem trims."""
+        return sorted(set(self._familia_para_modelo(cod_marca).values()))
 
-        Colapso por prefixo: se existe o modelo base 'T-CROSS', então 'T-CROSS
-        COMFORTLINE', 'T-CROSS SENSE' etc. NÃO são modelos — são versões dele.
-        """
-        fams = sorted({familia_do_label(m["Label"]) for m in self._get_modelos(cod_marca)})
-        # F é modelo base só se nenhuma família mais curta for prefixo-de-palavra de F
-        bases = [f for f in fams if not any(g != f and f.startswith(g + " ") for g in fams)]
-        return sorted(bases)
-
-    def versoes(self, cod_marca: int, modelo_base: str) -> list[dict]:
-        """[{codigo, nome}] de TODAS as versões do modelo base (ele + as que o estendem)."""
-        base = _norm(modelo_base)
+    def versoes(self, cod_marca: int, modelo: str) -> list[dict]:
+        """[{codigo, nome}] de todas as versões cujo MODELO é o selecionado."""
+        f2m = self._familia_para_modelo(cod_marca)
+        alvo = _norm(modelo)
         out = []
         for m in self._get_modelos(cod_marca):
-            fam = _norm(familia_do_label(m["Label"]))
-            if fam == base or fam.startswith(base + " "):
+            if _norm(f2m.get(familia_do_label(m["Label"]), "")) == alvo:
                 out.append({"codigo": str(m["Value"]), "nome": m["Label"]})
         return out
 

@@ -41,6 +41,29 @@ def test_match_exige_palavra_nome():
         fc.close()
 
 
+def test_modelos_colapsa_trims_preserva_compostos():
+    """Modelo no dropdown = FIT/CIVIC/HR-V; trims (CX/DX/EX) vão p/ versão.
+    Sub-modelos (CROSS) e compostos (GRAND SIENA) ficam como modelo próprio."""
+    fc = FipeClient()
+    fc._ref = 1
+    labels = ["FIT CX 1.5", "FIT DX 1.5", "FIT EX 1.5",
+              "CIVIC SEDAN 2.0", "CIVIC TYPE-R 2.0",
+              "COROLLA GLI 1.8", "COROLLA XEI 2.0", "COROLLA CROSS 1.8",
+              "GRAND SIENA 1.4", "GRAND SIENA ESSENCE 1.4"]
+    fc._modelos[1] = [{"Label": l, "Value": i} for i, l in enumerate(labels)]
+    try:
+        mods = set(fc.modelos_familias(1))
+        assert "FIT" in mods and "FIT CX" not in mods
+        assert "CIVIC" in mods
+        assert "COROLLA" in mods and "COROLLA CROSS" in mods   # Cross fica separado
+        assert "GRAND SIENA" in mods
+        assert len(fc.versoes(1, "FIT")) == 3
+        assert len(fc.versoes(1, "COROLLA")) == 2              # GLI, XEI (sem Cross)
+        assert len(fc.versoes(1, "COROLLA CROSS")) == 1
+    finally:
+        fc.close()
+
+
 def test_match_escolhe_versao_mais_aderente():
     fc = _client_com_modelos([
         {"Label": "HB20S 1.0 Comfort", "Value": 1},
