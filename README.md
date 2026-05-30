@@ -1,6 +1,9 @@
 # CarPrice — Monitoramento de Preços de Carros
 
-**Versão `0.5.0`** · [Changelog](CHANGELOG.md) · [Arquitetura](docs/ARCHITECTURE.md) · [Especificação](PROJETO_v3.md)
+**🌐 Site no ar: [pricecar.netlify.app](https://pricecar.netlify.app)** · **Versão `0.5.4`** · [Changelog](CHANGELOG.md) · [Arquitetura](docs/ARCHITECTURE.md) · [Especificação](PROJETO_v3.md)
+
+> Frontend no **Netlify** (responsivo) chamando o backend FastAPI no **Render**.
+> A 1ª busca após inatividade demora ~50s (free tier hiberna); depois fica rápido.
 
 Sistema que monitora anúncios de veículos em múltiplos portais brasileiros,
 identifica o **melhor custo-benefício comparando carros idênticos** (versão + ano,

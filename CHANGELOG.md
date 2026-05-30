@@ -9,6 +9,12 @@ A cada alteração: nova versão + entrada aqui + documentação atualizada + pu
 ## [Não lançado]
 - (próximas alterações entram aqui)
 
+## [0.5.4] - 2026-05-30
+### Added
+- **Site no ar**: https://pricecar.netlify.app (frontend Netlify + backend Render).
+  Verificado de ponta a ponta com navegador real: dropdowns carregam do backend
+  (CORS ok), e **responsivo** em mobile (390px) e desktop (sem scroll horizontal).
+
 ## [0.5.3] - 2026-05-30
 ### Changed
 - **Frontend chama o backend DIRETO** (via `VITE_API_URL`) em vez do proxy do Netlify,
