@@ -5,3 +5,6 @@ __pycache__/
 _alembic_tmp.db
 .pytest_cache/
 uvicorn.*.log
+backend.log
+gen_anos.log
+*.log

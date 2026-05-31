@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 
 const CAMBIOS = ["Automático", "Automático CVT", "Manual"];
 const COMBUSTIVEIS = ["Flex", "Gasolina", "Diesel", "Híbrido", "Elétrico"];
 
 export const EMPTY_FILTRO = {
-  marca: "", marcaCodigo: "", modelo: "", versao: "", uf: "SP", cidade: "", raio_km: "",
+  marca: "", marcaCodigo: "", modelo: "", versao: "", ano: "",
+  uf: "SP", cidade: "", raio_km: "",
   ano_min: "", ano_max: "", preco_min: "", preco_max: "", km_min: "", km_max: "",
   cambio: "", combustivel: "", cor: "", condicao: "",
 };
@@ -16,8 +17,13 @@ const NUMS = ["ano_min", "ano_max", "preco_min", "preco_max", "km_min", "km_max"
 export function criteriosFromFiltro(f) {
   const crit = {};
   for (const [k, v] of Object.entries(f)) {
-    if (k === "marcaCodigo" || v === "" || v == null) continue;
+    if (k === "marcaCodigo" || k === "ano" || v === "" || v == null) continue;
     crit[k] = NUMS.includes(k) ? Number(v) : v;
+  }
+  // ano específico (vínculo FIPE) → restringe a busca àquele ano-modelo
+  if (f.ano) {
+    crit.ano_min = Number(f.ano);
+    crit.ano_max = Number(f.ano);
   }
   return crit;
 }
@@ -40,6 +46,22 @@ export function FiltroVeiculos({ value: f, onChange: setF }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // --- vínculo ano <-> versão (dados de ano vêm em cada versão da FIPE) --- #
+  const temAnos = useMemo(() => versoes.some((v) => (v.anos || []).length), [versoes]);
+  // versão selecionada limita os anos; senão união de todas as versões.
+  const anosDisponiveis = useMemo(() => {
+    const vObj = versoes.find((v) => v.nome === f.versao);
+    const base = vObj && (vObj.anos || []).length
+      ? vObj.anos
+      : [...new Set(versoes.flatMap((v) => v.anos || []))];
+    return base.slice().sort((a, b) => b - a);
+  }, [versoes, f.versao]);
+  // ano selecionado limita as versões mostradas.
+  const versoesFiltradas = useMemo(
+    () => (f.ano ? versoes.filter((v) => (v.anos || []).includes(Number(f.ano))) : versoes),
+    [versoes, f.ano]
+  );
+
   async function onEstado(uf) {
     setF({ ...f, uf, cidade: "", raio_km: "" });
     setMunicipios([]);
@@ -47,14 +69,29 @@ export function FiltroVeiculos({ value: f, onChange: setF }) {
   }
   async function onMarca(codigo) {
     const m = marcas.find((x) => x.codigo === codigo);
-    setF({ ...f, marcaCodigo: codigo, marca: m?.nome || "", modelo: "", versao: "" });
+    setF({ ...f, marcaCodigo: codigo, marca: m?.nome || "", modelo: "", versao: "", ano: "" });
     setModelos([]); setVersoes([]);
     if (codigo) setModelos(await api.fipeModelos(codigo).catch(() => []));
   }
   async function onModelo(modelo) {
-    setF({ ...f, modelo, versao: "" });
+    setF({ ...f, modelo, versao: "", ano: "" });
     setVersoes([]);
     if (modelo && f.marcaCodigo) setVersoes(await api.fipeVersoes(f.marcaCodigo, modelo).catch(() => []));
+  }
+  // escolher o ANO: filtra versões; se a versão atual não existe nesse ano, limpa.
+  function onAno(ano) {
+    const vObj = versoes.find((v) => v.nome === f.versao);
+    const versaoOk = !ano || !vObj || (vObj.anos || []).includes(Number(ano));
+    setF({ ...f, ano, versao: versaoOk ? f.versao : "" });
+  }
+  // escolher a VERSÃO: restringe os anos; se o ano atual não existe nela, limpa.
+  function onVersao(nome) {
+    const vObj = versoes.find((v) => v.nome === nome);
+    const anos = vObj ? vObj.anos || [] : [];
+    const anoOk = !f.ano || anos.includes(Number(f.ano));
+    // se a versão só tem 1 ano, já seleciona pra ela
+    const novoAno = anoOk ? f.ano : (anos.length === 1 ? String(anos[0]) : "");
+    setF({ ...f, versao: nome, ano: novoAno });
   }
 
   return (
@@ -63,13 +100,25 @@ export function FiltroVeiculos({ value: f, onChange: setF }) {
         options={marcas.map((m) => ({ value: m.codigo, label: m.nome }))} placeholder="Todas as marcas" />
       <Select label="Modelo" value={f.modelo} onChange={onModelo} disabled={!f.marcaCodigo}
         options={modelos.map((m) => ({ value: m, label: m }))} placeholder="Todos os modelos" />
-      <Select label="Versão" value={f.versao} onChange={(v) => setF({ ...f, versao: v })} disabled={!f.modelo}
-        options={versoes.map((v) => ({ value: v.nome, label: v.nome }))} placeholder="Todas as versões" />
 
-      <Group label="Ano">
-        <Inp ph="De" value={f.ano_min} onChange={(v) => setF({ ...f, ano_min: v })} />
-        <Inp ph="Até" value={f.ano_max} onChange={(v) => setF({ ...f, ano_max: v })} />
-      </Group>
+      {/* Ano específico (vínculo FIPE) aparece quando há dados de ano do modelo */}
+      {f.modelo && temAnos && (
+        <Select label="Ano" value={f.ano} onChange={onAno}
+          options={anosDisponiveis.map((a) => ({ value: String(a), label: String(a) }))}
+          placeholder="Todos os anos" />
+      )}
+
+      <Select label="Versão" value={f.versao} onChange={onVersao} disabled={!f.modelo}
+        options={versoesFiltradas.map((v) => ({ value: v.nome, label: v.nome }))}
+        placeholder={f.ano ? `Versões de ${f.ano}` : "Todas as versões"} />
+
+      {/* Faixa de ano só quando NÃO há modelo (ou sem dados de ano) — busca ampla */}
+      {!(f.modelo && temAnos) && (
+        <Group label="Ano">
+          <Inp ph="De" value={f.ano_min} onChange={(v) => setF({ ...f, ano_min: v })} />
+          <Inp ph="Até" value={f.ano_max} onChange={(v) => setF({ ...f, ano_max: v })} />
+        </Group>
+      )}
       <Group label="Preço (R$)">
         <Inp ph="De" value={f.preco_min} onChange={(v) => setF({ ...f, preco_min: v })} />
         <Inp ph="Até" value={f.preco_max} onChange={(v) => setF({ ...f, preco_max: v })} />

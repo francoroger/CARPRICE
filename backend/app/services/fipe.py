@@ -288,13 +288,18 @@ class FipeClient:
         return sorted(set(self._familia_para_modelo(cod_marca).values()))
 
     def versoes(self, cod_marca: int, modelo: str) -> list[dict]:
-        """[{codigo, nome}] de todas as versões cujo MODELO é o selecionado."""
+        """[{codigo, nome, anos}] de todas as versões cujo MODELO é o selecionado.
+
+        `anos` (quando disponível no catálogo) permite o cruzamento ano↔versão no
+        frontend: escolher o ano filtra as versões e vice-versa.
+        """
         f2m = self._familia_para_modelo(cod_marca)
         alvo = _norm(modelo)
         out = []
         for m in self._get_modelos(cod_marca):
             if _norm(f2m.get(familia_do_label(m["Label"]), "")) == alvo:
-                out.append({"codigo": str(m["Value"]), "nome": m["Label"]})
+                out.append({"codigo": str(m["Value"]), "nome": m["Label"],
+                            "anos": m.get("anos", [])})
         return out
 
 

@@ -9,6 +9,30 @@ A cada alteração: nova versão + entrada aqui + documentação atualizada + pu
 ## [Não lançado]
 - (próximas alterações entram aqui)
 
+## [0.7.0] - 2026-05-30
+### Added
+- **Vínculo ano ↔ versão (FIPE)** no filtro de veículos: ao selecionar um modelo
+  aparece um seletor de **Ano**; escolher o ano mostra **apenas as versões que
+  existem naquele ano**, e escolher a versão restringe os anos àqueles em que ela
+  foi fabricada (cruzamento bidirecional, instantâneo no cliente).
+- **Anos-modelo embutidos no catálogo FIPE** (`data/fipe_modelos.json`): cada versão
+  passa a carregar `"anos": [...]`, gerado por `gen_fipe_anos.py` (ConsultarAnoModelo
+  de um IP residencial, pois o Render é bloqueado pela FIPE — mesmo motivo do catálogo).
+### Changed
+- `FipeClient.versoes()` agora retorna `anos` por versão.
+- `FiltroVeiculos.jsx`: a faixa "Ano De/Até" é substituída pelo seletor de Ano quando
+  há um modelo com dados de ano; permanece como faixa em buscas amplas (sem modelo).
+- O ano específico escolhido restringe a busca àquele ano-modelo (`ano_min=ano_max`).
+### Fixed
+- **Busca por ano voltava vazia** (ex.: "Gol 2018" num raio de 500 km não trazia nada
+  apesar de haver anúncios). Causa: o CarroSP ordena por relevância e o ano específico
+  ficava fora das primeiras páginas (teto de paginação) → o pós-filtro descartava tudo.
+  Agora o CarroSP filtra **no servidor dele**: `ano1`/`ano2`, `kmIni`/`kmFim`,
+  `precoIni`/`precoFim`, `zero`/`usado` vão na URL (junto do `distancia`). "Gol 2018"
+  passou de 0 → 12 resultados.
+- **Ano lido errado** em alguns anúncios do CarroSP (o ID virava "ano", ex.: 7614715):
+  o ano passa a ser o segmento que é realmente um ano (19xx/20xx) na URL.
+
 ## [0.6.0] - 2026-05-30
 ### Added
 - **Filtro de veículos compartilhado** (`components/FiltroVeiculos.jsx`): a tela

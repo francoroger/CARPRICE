@@ -51,9 +51,31 @@ class CarroSPConnector(PortalConnector):
             base = f"{BASE}/carros/{loc}/{_slug(criteria.marca)}/"
         else:
             base = f"{BASE}/carros/{loc}/todos/"
-        # raio de distância da cidade (CarroSP: ?distancia=N km)
+
+        # FILTROS NO SERVIDOR do CarroSP — sem isso, ano/preço/km específicos podem
+        # não aparecer nas 1ªs páginas (a ordem é por relevância, não por ano) e a
+        # busca "Gol 2018" voltava vazia mesmo havendo anúncios.
+        params: list[tuple[str, int]] = []
         if criteria.raio_km and criteria.cidade:
-            base += f"?distancia={int(criteria.raio_km)}"
+            params.append(("distancia", int(criteria.raio_km)))   # raio km
+        if criteria.ano_min:
+            params.append(("ano1", int(criteria.ano_min)))
+        if criteria.ano_max:
+            params.append(("ano2", int(criteria.ano_max)))
+        if criteria.km_min:
+            params.append(("kmIni", int(criteria.km_min)))
+        if criteria.km_max:
+            params.append(("kmFim", int(criteria.km_max)))
+        if criteria.preco_min:
+            params.append(("precoIni", int(criteria.preco_min)))
+        if criteria.preco_max:
+            params.append(("precoFim", int(criteria.preco_max)))
+        if criteria.condicao == "0km":
+            params.append(("zero", 1))
+        elif criteria.condicao == "usado":
+            params.append(("usado", 1))
+        if params:
+            base += "?" + "&".join(f"{k}={v}" for k, v in params)
         return base
 
     def search(self, criteria: SearchCriteria, fetch: Fetcher) -> list[RawListing]:
@@ -138,7 +160,12 @@ def _campos_da_url(href: str) -> tuple[str | None, str | None, str | None, int |
     marca = get(1)
     modelo = get(2)
     versao = get(3)
-    ano = so_digitos(seg[4]) if len(seg) > 4 and seg[4].isdigit() else None
+    # ano = o ÚLTIMO segmento que é um ano plausível (evita ler o ID como ano,
+    # que acontece quando a versão tem barras a mais ou falta um segmento).
+    ano = None
+    for s in seg:
+        if re.fullmatch(r"(19|20)\d{2}", s):
+            ano = int(s)
     return (
         marca.title() if marca else None,
         modelo.title() if modelo else None,

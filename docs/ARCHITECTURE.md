@@ -69,6 +69,13 @@ Consome a API interna oficial `veiculos.fipe.org.br/api/veiculos`
 (tabela de referência → marcas → modelos → ano → valor), com cache. Matching exige a
 palavra-nome do modelo e escolhe a geração que tem o ano do carro. Rate-limit tratado.
 
+**Catálogo estático** (`data/fipe_modelos.json`): marcas + modelos + **anos-modelo de
+cada versão** embutidos no repo (a FIPE bloqueia IP de datacenter como o Render).
+Gerado por `gen_fipe_catalog.py`/`gen_fipe_fill.py` (marcas/modelos) e `gen_fipe_anos.py`
+(anos por versão, via `ConsultarAnoModelo`), rodados de um IP residencial. `versoes()`
+devolve `{codigo, nome, anos}` → o front cruza **ano ↔ versão** sem chamadas extras:
+escolher o ano filtra as versões e escolher a versão restringe os anos.
+
 ### Fluxo da busca ao vivo (`app/services/scrape.buscar_ao_vivo`)
 Coleta paralela (ThreadPoolExecutor) → upsert no mercado → filtra pelos critérios →
 score focado (FIPE fresca p/ grupos pequenos) → ordena (preço/desconto) → devolve.
