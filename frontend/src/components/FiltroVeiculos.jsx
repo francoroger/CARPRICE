@@ -35,14 +35,33 @@ export function FiltroVeiculos({ value: f, onChange: setF }) {
   const [versoes, setVersoes] = useState([]);
   const [estados, setEstados] = useState([]);
   const [municipios, setMunicipios] = useState([]);
+  const [acordando, setAcordando] = useState(true); // backend free hiberna (~50s)
 
   useEffect(() => {
-    api.fipeMarcas().then(setMarcas).catch(() => setMarcas([]));
-    api.estados().then(setEstados).catch(() => setEstados([]));
-    if (f.uf) api.municipios(f.uf).then(setMunicipios).catch(() => setMunicipios([]));
-    // carrega modelos/versões se já vier preenchido (edição de monitor)
-    if (f.marcaCodigo) api.fipeModelos(f.marcaCodigo).then(setModelos).catch(() => {});
-    if (f.marcaCodigo && f.modelo) api.fipeVersoes(f.marcaCodigo, f.modelo).then(setVersoes).catch(() => {});
+    let vivo = true;
+    // RETRY com backoff: o Render free hiberna e a 1ª chamada falha/demora —
+    // sem isso os dropdowns ficavam vazios até o usuário dar F5.
+    (async () => {
+      for (let i = 0; i < 36 && vivo; i++) {        // ~3 min de tentativas
+        try {
+          const ms = await api.fipeMarcas();
+          if (!vivo) return;
+          if (ms?.length) {
+            setMarcas(ms);
+            setAcordando(false);
+            api.estados().then((e) => vivo && setEstados(e)).catch(() => {});
+            if (f.uf) api.municipios(f.uf).then((m) => vivo && setMunicipios(m)).catch(() => {});
+            if (f.marcaCodigo) api.fipeModelos(f.marcaCodigo).then((m) => vivo && setModelos(m)).catch(() => {});
+            if (f.marcaCodigo && f.modelo)
+              api.fipeVersoes(f.marcaCodigo, f.modelo).then((v) => vivo && setVersoes(v)).catch(() => {});
+            return;
+          }
+        } catch { /* servidor ainda acordando */ }
+        await new Promise((r) => setTimeout(r, 5000));
+      }
+      if (vivo) setAcordando(false);
+    })();
+    return () => { vivo = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -97,7 +116,13 @@ export function FiltroVeiculos({ value: f, onChange: setF }) {
   return (
     <div className="space-y-3">
       <Select label="Marca" value={f.marcaCodigo} onChange={onMarca}
-        options={marcas.map((m) => ({ value: m.codigo, label: m.nome }))} placeholder="Todas as marcas" />
+        options={marcas.map((m) => ({ value: m.codigo, label: m.nome }))}
+        placeholder={acordando ? "⏳ acordando o servidor… (até 1 min)" : "Todas as marcas"} />
+      {acordando && (
+        <p className="text-xs text-amber-600">
+          O servidor gratuito hiberna quando fica parado — as marcas carregam sozinhas em instantes.
+        </p>
+      )}
       <Select label="Modelo" value={f.modelo} onChange={onModelo} disabled={!f.marcaCodigo}
         options={modelos.map((m) => ({ value: m, label: m }))} placeholder="Todos os modelos" />
 

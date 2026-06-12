@@ -9,6 +9,15 @@ A cada alteração: nova versão + entrada aqui + documentação atualizada + pu
 ## [Não lançado]
 - (próximas alterações entram aqui)
 
+## [0.10.2] - 2026-05-30
+### Fixed
+- **Dropdowns de Marca/Modelo vazios ao abrir o site**: o backend free (Render)
+  hiberna após ~15min parado e a 1ª chamada de marcas falhava — o filtro ficava
+  vazio até o usuário dar F5. Agora o componente **tenta de novo sozinho** (a cada
+  5s por até 3min), mostra "⏳ acordando o servidor…" enquanto isso e preenche as
+  107 marcas automaticamente quando o servidor responde (verificado: recupera sem
+  recarregar a página).
+
 ## [0.10.1] - 2026-05-30
 ### Fixed
 - **"Varrer agora" parecia travado**: a varredura rodava em segundo plano sem
