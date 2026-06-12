@@ -1,4 +1,4 @@
-"""Testes da engine de score (§4.4). Cobre os 3 casos exigidos pelo projeto."""
+"""Testes do engine de Preço de Mercado (v0.10)."""
 from app.services.scoring import (
     ScoreInput,
     ScoreParams,
@@ -12,88 +12,87 @@ def _by_id(resultados):
     return {r.id: r for r in resultados}
 
 
-def test_faixa_de_km():
+def test_faixa_de_km_exibicao():
     cortes = [30000, 60000, 90000, 120000]
     assert faixa_de_km(0, cortes) == "0k-30k"
-    assert faixa_de_km(29999, cortes) == "0k-30k"
     assert faixa_de_km(30000, cortes) == "30k-60k"
     assert faixa_de_km(150000, cortes) == "120k+"
     assert faixa_de_km(None, cortes) == "sem_km"
 
 
-def test_grupo_grande_usa_mercado():
-    """Grupo com >= min_grupo anúncios na faixa → origem MERCADO, mediana como ref."""
-    params = ScoreParams(min_grupo=3, w_km=0.0)  # zera bônus p/ isolar o desconto
-    # mesmo carro, mesma faixa de km (todos 0-30k), preços: 50k,52k,54k,40k
-    anuncios = [
-        ScoreInput(id=1, grupo_chave="onix-2020", preco=50000, km=10000),
-        ScoreInput(id=2, grupo_chave="onix-2020", preco=52000, km=15000),
-        ScoreInput(id=3, grupo_chave="onix-2020", preco=54000, km=20000),
-        ScoreInput(id=4, grupo_chave="onix-2020", preco=40000, km=25000),  # barato
-    ]
-    res = _by_id(calcular_scores(anuncios, params))
-
-    # mediana de [50,52,54,40] = 51000
-    assert res[4].origem_score == "MERCADO"
-    assert res[4].preco_ref == 51000
-    # anúncio de 40k está ~21,6% abaixo da referência → desconto positivo alto
-    assert res[4].desconto > 0.2
-    # anúncio de 54k está acima da referência → desconto negativo
-    assert res[3].desconto < 0
+def _a(id, preco, km=None, versao="gol 1.0|2018", modelo="vw|gol|2018", fipe=None):
+    return ScoreInput(id=id, grupo_versao=versao, grupo_modelo=modelo,
+                      preco=preco, km=km, fipe_valor=fipe)
 
 
-def test_grupo_pequeno_cai_para_fipe():
-    """Faixa com < min_grupo anúncios → fallback FIPE."""
-    params = ScoreParams(min_grupo=3, w_km=0.0)
-    anuncios = [
-        ScoreInput(id=1, grupo_chave="raro-2018", preco=80000, km=10000, fipe_valor=100000),
-        ScoreInput(id=2, grupo_chave="raro-2018", preco=95000, km=12000, fipe_valor=100000),
-    ]
-    res = _by_id(calcular_scores(anuncios, params))
-
-    # só 2 anúncios (< 3) → não há base de mercado → usa FIPE
-    assert res[1].origem_score == "FIPE"
-    assert res[1].preco_ref == 100000
-    # 80k vs FIPE 100k → 20% abaixo
-    assert abs(res[1].desconto - 0.20) < 1e-6
+def test_referencia_por_versao():
+    """4 anúncios da mesma versão → referência = mediana da versão (VERSAO:4)."""
+    params = ScoreParams(min_grupo=3, alpha_km=0.0)  # sem ajuste de km p/ isolar
+    r = _by_id(calcular_scores(
+        [_a(1, 50000), _a(2, 52000), _a(3, 54000), _a(4, 40000)], params))
+    # mediana = 51000; anúncio 4 (40k) está ~21,6% abaixo
+    assert r[4].origem_score == "VERSAO:4"
+    assert r[4].preco_ref == 51000
+    assert abs(r[4].desconto - (51000 - 40000) / 51000) < 1e-3
+    assert r[4].score == r[4].desconto  # score = desconto, sem mágica
 
 
-def test_grupo_pequeno_sem_fipe_fica_indefinido():
+def test_fallback_para_modelo():
+    """Versões diferentes (sem volume) mas mesmo modelo → referência MODELO:n."""
+    params = ScoreParams(min_grupo=3, alpha_km=0.0)
+    r = _by_id(calcular_scores([
+        _a(1, 50000, versao="gol 1.0|2018"),
+        _a(2, 52000, versao="gol 1.6 msi|2018"),
+        _a(3, 54000, versao="gol trendline|2018"),
+    ], params))
+    assert r[1].origem_score == "MODELO:3"
+    assert r[1].preco_ref == 52000  # mediana do modelo
+
+
+def test_fallback_para_fipe():
+    """Sem comparáveis em nível nenhum → FIPE quando existir, senão sem score."""
     params = ScoreParams(min_grupo=3)
-    anuncios = [
-        ScoreInput(id=1, grupo_chave="x", preco=50000, km=10000, fipe_valor=None),
-    ]
-    res = _by_id(calcular_scores(anuncios, params))
-    assert res[1].origem_score is None
-    assert res[1].score is None
+    r = _by_id(calcular_scores([
+        _a(1, 45000, modelo="vw|gol|2018", fipe=50000),
+        _a(2, 60000, versao="argo drive|2022", modelo="fiat|argo|2022"),
+    ], params))
+    assert r[1].origem_score == "FIPE"
+    assert abs(r[1].desconto - 0.10) < 1e-3
+    assert r[2].origem_score is None and r[2].score is None
 
 
-def test_desempate_por_km():
-    """Mesmo preço (mesmo desconto), mesma faixa de km → o de menor km pontua mais."""
-    params = ScoreParams(min_grupo=3, w_km=0.05)
-    # os 3 caem na MESMA faixa (0-30k) → mesma referência de mercado
-    anuncios = [
-        ScoreInput(id=1, grupo_chave="hb20-2021", preco=60000, km=5000),   # menos km
-        ScoreInput(id=2, grupo_chave="hb20-2021", preco=60000, km=15000),
-        ScoreInput(id=3, grupo_chave="hb20-2021", preco=60000, km=25000),  # mais km
-    ]
-    res = _by_id(calcular_scores(anuncios, params))
-
-    # mesmo preço e mesma referência → mesmo desconto; o bônus de km desempata
-    assert res[1].desconto == res[2].desconto == res[3].desconto
-    assert res[1].score > res[2].score > res[3].score  # menor km → maior score
-
-    ranking = rankear(calcular_scores(anuncios, params))
-    assert ranking[0].id == 1  # o de menor km lidera
+def test_ajuste_de_km_na_referencia():
+    """Carro com km abaixo da mediana do grupo tem preço justo MAIOR (e vice-versa)."""
+    params = ScoreParams(min_grupo=3, alpha_km=0.01, cap_km=0.10)
+    # grupo com km mediana 60k; anúncios de mesmo preço
+    r = _by_id(calcular_scores([
+        _a(1, 50000, km=20000),   # 40k km abaixo da mediana → ref +4%
+        _a(2, 50000, km=60000),   # na mediana → ref neutra
+        _a(3, 50000, km=100000),  # 40k acima → ref -4%
+    ], params))
+    assert r[1].preco_ref > r[2].preco_ref > r[3].preco_ref
+    assert r[1].desconto > 0 > r[3].desconto  # rodou pouco = mais barato que o justo
+    assert abs(r[1].preco_ref - round(50000 * 1.04)) <= 1
+    assert abs(r[3].preco_ref - round(50000 * 0.96)) <= 1
 
 
-def test_ranking_ordena_por_score():
-    params = ScoreParams(min_grupo=3, w_km=0.0)
-    anuncios = [
-        ScoreInput(id=1, grupo_chave="g", preco=50000, km=10000),
-        ScoreInput(id=2, grupo_chave="g", preco=52000, km=10000),
-        ScoreInput(id=3, grupo_chave="g", preco=30000, km=10000),  # melhor negócio
-    ]
-    ranking = rankear(calcular_scores(anuncios, params))
-    assert ranking[0].id == 3
-    assert ranking[0].desconto > 0
+def test_cap_do_ajuste_km():
+    """Diferença absurda de km não distorce a referência além do teto."""
+    params = ScoreParams(min_grupo=3, alpha_km=0.01, cap_km=0.05)
+    r = _by_id(calcular_scores([
+        _a(1, 50000, km=0),
+        _a(2, 50000, km=100000),
+        _a(3, 50000, km=300000),  # 200k acima da mediana → capado em -5%
+    ], params))
+    assert r[3].preco_ref == round(50000 * 0.95)
+
+
+def test_rankear_sem_score_no_fim():
+    params = ScoreParams(min_grupo=3, alpha_km=0.0)
+    rs = calcular_scores([
+        _a(1, 40000), _a(2, 52000), _a(3, 54000),
+        _a(9, 99000, versao="x|?", modelo="y|?"),  # sem comparável nem FIPE
+    ], params)
+    ordenado = rankear(rs)
+    assert ordenado[0].id == 1          # maior desconto primeiro
+    assert ordenado[-1].id == 9         # sem score no fim

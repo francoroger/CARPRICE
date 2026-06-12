@@ -56,12 +56,18 @@ Cada fonte nomeia diferente. Normalizações:
   faz **colapso por prefixo** (se existe "T-CROSS", então "T-CROSS COMFORTLINE" é
   *versão* dele, não modelo). Resultado: dropdown de Modelo só com modelos.
 
-### Engine de score (`app/services/scoring.py`)
-1. Agrupa por `grupo_chave` (versão + ano).
-2. Segmenta por faixa de km.
-3. `preco_ref` = **mediana** da faixa (≥ `min_grupo` anúncios → origem **MERCADO**).
-4. Grupo pequeno → **fallback FIPE** (origem FIPE), conservador.
-5. `desconto = (preco_ref - preco) / preco_ref`; `score = desconto + bônus de km`.
+### Engine de Preço de Mercado (`app/services/scoring.py`) — v0.10
+Responde "este carro está caro ou barato pro que ele é?". Calibrado em análise de
+3.887 anúncios reais (dispersão ±11,5% dentro de modelo+ano; efeito km ≈ -0,4%/10k).
+1. **Referência hierárquica** (1ª com ≥ `min_grupo` comparáveis):
+   `VERSAO` (mediana da mesma versão+ano) → `MODELO` (mesmo modelo+ano) → `FIPE`.
+2. **Ajuste por km**: referência corrigida pela km do carro vs a mediana do grupo
+   (`alpha_km` por 10.000 km, teto `cap_km`). Sem faixas que fragmentam grupos.
+3. `desconto = (preço_justo - preço) / preço_justo`; `score = desconto` (sem bônus
+   escondido). `origem_score` carrega a transparência: "VERSAO:8" = 8 comparáveis.
+4. Frontend traduz em rótulos (`src/score.js`): 🔥 Excelente negócio (≥10% abaixo),
+   ▼ Bom preço (≥5%), Preço justo (±5%), ▲ Acima do mercado, ▲ Caro (>12% acima).
+Cobertura medida: ~97% dos anúncios avaliados (antes ~50% ficava "sem referência").
 Parâmetros em `settings` (editáveis no painel).
 
 ### FIPE oficial (`app/services/fipe.py`)

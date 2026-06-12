@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 import { api } from "../api";
 import { EMPTY_FILTRO, FiltroVeiculos, criteriosFromFiltro } from "../components/FiltroVeiculos.jsx";
+import { classifica, origemLabel, pctScore } from "../score.js";
 
 const brl = (v) => (v == null ? "—" : "R$ " + v.toLocaleString("pt-BR"));
-const pct = (v) => (v == null ? "—" : (v * 100).toFixed(1) + "%");
 
 export function Busca() {
   const [f, setF] = useState(EMPTY_FILTRO);
@@ -69,7 +69,7 @@ export function Busca() {
               <select value={ordem} onChange={(e) => setOrdem(e.target.value)} className="input text-sm py-1">
                 <option value="preco_asc">Preço: menor → maior</option>
                 <option value="preco_desc">Preço: maior → menor</option>
-                <option value="desconto">Melhor desconto</option>
+                <option value="desconto">Melhor negócio</option>
               </select>
             </div>
 
@@ -116,8 +116,7 @@ function Chip({ ativo, onClick, label }) {
 }
 
 export function CarCard({ l }) {
-  const desc = l.desconto;
-  const bom = (desc ?? 0) > 0;
+  const cls = classifica(l.desconto);
   return (
     <a href={l.url} target="_blank" rel="noreferrer"
       className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow flex flex-col">
@@ -128,9 +127,9 @@ export function CarCard({ l }) {
         ) : (
           <div className="w-full h-full flex items-center justify-center text-slate-300 text-4xl">🚗</div>
         )}
-        {desc != null && (
-          <span className={`absolute top-2 left-2 text-xs font-bold px-2 py-1 rounded ${bom ? "bg-emerald-500 text-white" : "bg-slate-700/80 text-white"}`}>
-            {bom ? "▼ " : ""}{pct(desc)}
+        {cls && (
+          <span className={`absolute top-2 left-2 text-xs font-bold px-2 py-1 rounded ${cls.cor}`}>
+            {cls.icone} {cls.rotulo}
           </span>
         )}
         <span className="absolute top-2 right-2 text-[10px] uppercase tracking-wide bg-black/55 text-white px-2 py-0.5 rounded">
@@ -147,13 +146,19 @@ export function CarCard({ l }) {
           <span>{l.km != null ? l.km.toLocaleString("pt-BR") + " km" : "km n/d"}</span>
           {l.cidade && <><span>·</span><span>{l.cidade}/{l.uf}</span></>}
         </div>
-        <div className="mt-1 flex items-center gap-2 text-xs">
-          {l.preco_ref ? <span className="text-slate-400">ref {brl(l.preco_ref)}</span>
-            : <span className="text-slate-300">sem referência</span>}
-          {l.origem_score && (
-            <span className={`px-1.5 py-0.5 rounded ${l.origem_score === "MERCADO" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
-              {l.origem_score}
-            </span>
+        <div className="mt-1 text-xs text-slate-500">
+          {l.desconto != null && l.preco_ref ? (
+            <>
+              <span className={l.desconto >= 0.05 ? "text-emerald-600 font-semibold" : l.desconto <= -0.05 ? "text-rose-500 font-semibold" : ""}>
+                {pctScore(l.desconto)} do mercado
+              </span>
+              <span className="text-slate-400"> · justo {brl(l.preco_ref)}</span>
+              {origemLabel(l.origem_score) && (
+                <div className="text-slate-400">comparado com {origemLabel(l.origem_score)}</div>
+              )}
+            </>
+          ) : (
+            <span className="text-slate-300">sem comparáveis suficientes</span>
           )}
         </div>
       </div>

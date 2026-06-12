@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
+import { classifica, origemLabel, pctScore } from "../score.js";
 
 const brl = (v) => (v == null ? "—" : "R$ " + v.toLocaleString("pt-BR"));
-const pct = (v) => (v == null ? "—" : (v * 100).toFixed(1) + "%");
+
+const CLASSES = ["Excelente negócio", "Bom preço", "Preço justo", "Acima do mercado", "Caro"];
 
 export function Ranking() {
   const [items, setItems] = useState([]);
-  const [origem, setOrigem] = useState("");
-  const [descMin, setDescMin] = useState("");
+  const [classeSel, setClasseSel] = useState("");
   const [loading, setLoading] = useState(true);
   const [portalSel, setPortalSel] = useState("");
 
@@ -16,37 +17,32 @@ export function Ranking() {
     for (const l of items) c[l.portal_slug] = (c[l.portal_slug] || 0) + 1;
     return c;
   }, [items]);
-  const filtered = useMemo(
-    () => (portalSel ? items.filter((l) => l.portal_slug === portalSel) : items),
-    [items, portalSel]
-  );
+
+  const filtered = useMemo(() => {
+    let r = items;
+    if (portalSel) r = r.filter((l) => l.portal_slug === portalSel);
+    if (classeSel) r = r.filter((l) => classifica(l.desconto)?.rotulo === classeSel);
+    return r;
+  }, [items, portalSel, classeSel]);
 
   async function load() {
     setLoading(true);
-    const p = new URLSearchParams();
-    if (origem) p.set("origem", origem);
-    if (descMin) p.set("desconto_min", String(Number(descMin) / 100));
     try {
-      setItems(await api.listings("?" + p.toString()));
+      setItems(await api.listings(""));
     } finally {
       setLoading(false);
     }
   }
-  useEffect(() => { load(); }, [origem, descMin]);
+  useEffect(() => { load(); }, []);
 
   return (
     <div>
       <div className="flex flex-wrap gap-3 items-end mb-4">
-        <Field label="Origem do score">
-          <select value={origem} onChange={(e) => setOrigem(e.target.value)} className="input">
+        <Field label="Classificação">
+          <select value={classeSel} onChange={(e) => setClasseSel(e.target.value)} className="input">
             <option value="">Todas</option>
-            <option value="MERCADO">Mercado (idênticos)</option>
-            <option value="FIPE">FIPE (fallback)</option>
+            {CLASSES.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
-        </Field>
-        <Field label="Desconto mínimo (%)">
-          <input type="number" value={descMin} onChange={(e) => setDescMin(e.target.value)}
-            placeholder="ex: 8" className="input w-28" />
         </Field>
         <span className="text-sm text-slate-500">{filtered.length} anúncios</span>
       </div>
@@ -62,16 +58,16 @@ export function Ranking() {
       )}
 
       <div className="bg-white rounded-xl shadow-sm overflow-x-auto">
-        <table className="w-full text-sm min-w-[640px]">
+        <table className="w-full text-sm min-w-[700px]">
           <thead className="bg-slate-100 text-slate-600 text-left">
             <tr>
               <th className="px-3 py-2">Veículo</th>
               <th className="px-3 py-2">Ano</th>
               <th className="px-3 py-2">Km</th>
               <th className="px-3 py-2">Preço</th>
-              <th className="px-3 py-2">Ref.</th>
-              <th className="px-3 py-2">Desconto</th>
-              <th className="px-3 py-2">Origem</th>
+              <th className="px-3 py-2">Preço justo</th>
+              <th className="px-3 py-2">Avaliação</th>
+              <th className="px-3 py-2">Comparado com</th>
               <th className="px-3 py-2">Portal</th>
             </tr>
           </thead>
@@ -82,29 +78,35 @@ export function Ranking() {
                 Nenhum anúncio ainda. Clique em “Varrer agora”.
               </td></tr>
             )}
-            {filtered.map((l) => (
-              <tr key={l.id} className="border-t border-slate-100 hover:bg-slate-50">
-                <td className="px-3 py-2 max-w-xs">
-                  <a href={l.url} target="_blank" rel="noreferrer" className="text-sky-700 hover:underline">
-                    {l.versao || l.titulo || "—"}
-                  </a>
-                  {l.cidade && <span className="text-slate-400"> · {l.cidade}/{l.uf}</span>}
-                </td>
-                <td className="px-3 py-2">{l.ano_modelo || "—"}</td>
-                <td className="px-3 py-2">{l.km ? l.km.toLocaleString("pt-BR") : "—"}</td>
-                <td className="px-3 py-2 font-medium">{brl(l.preco)}</td>
-                <td className="px-3 py-2 text-slate-500">{brl(l.preco_ref)}</td>
-                <td className={`px-3 py-2 font-semibold ${(l.desconto ?? 0) > 0 ? "text-emerald-600" : "text-rose-500"}`}>
-                  {pct(l.desconto)}
-                </td>
-                <td className="px-3 py-2">
-                  <span className={`text-xs px-2 py-0.5 rounded ${l.origem_score === "MERCADO" ? "bg-emerald-100 text-emerald-700" : l.origem_score === "FIPE" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-500"}`}>
-                    {l.origem_score || "—"}
-                  </span>
-                </td>
-                <td className="px-3 py-2 text-slate-500">{l.portal_slug}</td>
-              </tr>
-            ))}
+            {filtered.map((l) => {
+              const cls = classifica(l.desconto);
+              return (
+                <tr key={l.id} className="border-t border-slate-100 hover:bg-slate-50">
+                  <td className="px-3 py-2 max-w-xs">
+                    <a href={l.url} target="_blank" rel="noreferrer" className="text-sky-700 hover:underline">
+                      {l.versao || l.titulo || "—"}
+                    </a>
+                    {l.cidade && <span className="text-slate-400"> · {l.cidade}/{l.uf}</span>}
+                  </td>
+                  <td className="px-3 py-2">{l.ano_modelo || "—"}</td>
+                  <td className="px-3 py-2">{l.km ? l.km.toLocaleString("pt-BR") : "—"}</td>
+                  <td className="px-3 py-2 font-medium">{brl(l.preco)}</td>
+                  <td className="px-3 py-2 text-slate-500">{brl(l.preco_ref)}</td>
+                  <td className="px-3 py-2">
+                    {cls ? (
+                      <span className={`text-xs px-2 py-0.5 rounded whitespace-nowrap ${cls.cor}`}>
+                        {cls.rotulo}
+                      </span>
+                    ) : <span className="text-slate-300 text-xs">sem comparáveis</span>}
+                    {l.desconto != null && (
+                      <div className="text-[11px] text-slate-400 mt-0.5">{pctScore(l.desconto)} do mercado</div>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-xs text-slate-500">{origemLabel(l.origem_score) || "—"}</td>
+                  <td className="px-3 py-2 text-slate-500">{l.portal_slug}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

@@ -120,8 +120,8 @@ class SettingUpdate(BaseModel):
 
 
 class ScoreParamsRead(BaseModel):
-    faixas_km: list[int]
     min_grupo: int
-    w_km: float
+    alpha_km: float
+    cap_km: float
     threshold_desconto: float
-    metrica_ref: str
+    faixas_km: list[int]

@@ -9,6 +9,27 @@ A cada alteração: nova versão + entrada aqui + documentação atualizada + pu
 ## [Não lançado]
 - (próximas alterações entram aqui)
 
+## [0.10.0] - 2026-05-30
+### Changed
+- **Score REFEITO do zero — "Preço de Mercado"**, calibrado numa análise de 3.887
+  anúncios reais (dispersão de preço ±11,5% dentro de modelo+ano; efeito da km
+  medido ≈ -0,4% a cada 10.000 km):
+  - **Referência hierárquica**: mediana da mesma **versão+ano** (precisa) → mesmo
+    **modelo+ano** (cobertura) → FIPE (último recurso). Cobertura: ~50% → **97%**
+    dos anúncios avaliados.
+  - **Km ajusta a referência** (alpha_km por 10k km, com teto) em vez de fragmentar
+    os grupos em faixas — era isso que deixava quase tudo "sem referência".
+  - **score = desconto, sem bônus escondido** (antes somava um bônus de km opaco).
+  - `origem_score` transparente: "VERSAO:8" = comparado com 8 anúncios da mesma versão.
+- **Rótulos intuitivos no lugar de números** (Busca e Ranking):
+  🔥 **Excelente negócio** (≥10% abaixo do mercado) · ▼ **Bom preço** (≥5%) ·
+  **Preço justo** (±5%) · ▲ **Acima do mercado** · ▲ **Caro** (>12% acima).
+  Cada card mostra "X% abaixo/acima do mercado · justo R$Y · comparado com N anúncios".
+- Ranking: filtro por **Classificação** (substitui "origem do score"); colunas
+  "Preço justo", "Avaliação" e "Comparado com".
+- Configurações: parâmetros novos (mín. comparáveis, ajuste por km, teto) no lugar
+  de w_km/métrica.
+
 ## [0.9.1] - 2026-05-30
 ### Fixed
 - **Fotos do Napista nos cards**: o lazy-load só deixava `<img src>` nos ~8 primeiros

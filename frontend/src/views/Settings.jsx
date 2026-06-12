@@ -16,11 +16,11 @@ export function Settings() {
 
   async function saveScore() {
     await api.saveScore({
-      faixas_km: String(score.faixas_km).split(",").map((s) => Number(s.trim())).filter(Boolean),
       min_grupo: Number(score.min_grupo),
-      w_km: Number(score.w_km),
+      alpha_km: Number(score.alpha_km),
+      cap_km: Number(score.cap_km),
       threshold_desconto: Number(score.threshold_desconto),
-      metrica_ref: score.metrica_ref,
+      faixas_km: String(score.faixas_km).split(",").map((s) => Number(s.trim())).filter(Boolean),
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -36,29 +36,26 @@ export function Settings() {
   return (
     <div className="grid md:grid-cols-2 gap-6">
       <section className="bg-white rounded-xl shadow-sm p-4 space-y-3">
-        <h2 className="font-semibold">Parâmetros do score</h2>
-        <Row label="Faixas de km (vírgula)">
-          <input className="input" value={score.faixas_km}
-            onChange={(e) => setScore({ ...score, faixas_km: e.target.value })} />
-        </Row>
-        <Row label="Mín. anúncios p/ usar mercado">
+        <h2 className="font-semibold">Parâmetros do Preço de Mercado</h2>
+        <Row label="Mín. de anúncios comparáveis (referência de mercado)">
           <input className="input" type="number" value={score.min_grupo}
             onChange={(e) => setScore({ ...score, min_grupo: e.target.value })} />
         </Row>
-        <Row label="Peso do bônus de km (w_km)">
-          <input className="input" type="number" step="0.01" value={score.w_km}
-            onChange={(e) => setScore({ ...score, w_km: e.target.value })} />
+        <Row label="Ajuste por km — fração do preço a cada 10.000 km">
+          <input className="input" type="number" step="0.001" value={score.alpha_km}
+            onChange={(e) => setScore({ ...score, alpha_km: e.target.value })} />
         </Row>
-        <Row label="Threshold de desconto (0–1)">
+        <Row label="Teto do ajuste de km (0–1)">
+          <input className="input" type="number" step="0.01" value={score.cap_km}
+            onChange={(e) => setScore({ ...score, cap_km: e.target.value })} />
+        </Row>
+        <Row label="Desconto mínimo p/ o monitor notificar (0–1)">
           <input className="input" type="number" step="0.01" value={score.threshold_desconto}
             onChange={(e) => setScore({ ...score, threshold_desconto: e.target.value })} />
         </Row>
-        <Row label="Métrica de referência">
-          <select className="input" value={score.metrica_ref}
-            onChange={(e) => setScore({ ...score, metrica_ref: e.target.value })}>
-            <option value="mediana">mediana</option>
-            <option value="media">média</option>
-          </select>
+        <Row label="Faixas de km p/ exibição (vírgula)">
+          <input className="input" value={score.faixas_km}
+            onChange={(e) => setScore({ ...score, faixas_km: e.target.value })} />
         </Row>
         <button onClick={saveScore} className="bg-slate-900 hover:bg-slate-700 text-white rounded-lg px-4 py-2 text-sm font-medium">
           {saved ? "Salvo ✓" : "Salvar parâmetros"}

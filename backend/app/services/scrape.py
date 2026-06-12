@@ -111,43 +111,70 @@ def _fetch_portal_raws(portal: Portal, criteria: SearchCriteria):
         return [], "erro", f"{type(e).__name__}: {e}", int((time.monotonic() - t0) * 1000)
 
 
-def _score_focado(db: Session, listings: list[VehicleListing], params: ScoreParams) -> None:
-    """Scoreia APENAS o conjunto da busca, reprocessando a FIPE FRESCA.
+def _grupo_modelo(l: VehicleListing) -> str:
+    """Chave modelo+ano (mesmo carro, qualquer versão) — 2º nível da referência.
 
-    Não reusa fipe_valor antigo do anúncio (que pode estar errado de varreduras
-    passadas). Grupos com volume usam MERCADO; singletons resolvem FIPE na hora,
-    de forma conservadora (resolver devolve None se versão/ano não casam).
+    A família é o 1º token-NOME do modelo/versão: pula cilindrada ('1.0 16v')
+    e a marca repetida no título ('Volkswagen Gol ...' → 'gol'). Sem família
+    identificável, NÃO agrupa além da versão (evita juntar carros diferentes).
+    """
+    marca = (l.marca or "").lower()
+    base = l.modelo or l.versao or ""
+    fam = None
+    for t in base.split():
+        if any(c.isdigit() for c in t):
+            continue  # cilindrada/ano/16v
+        tl = t.lower().strip(".-")
+        if marca and (tl == marca or tl in marca.split()):
+            continue  # marca repetida no título
+        fam = tl
+        break
+    if not fam:
+        return f"{marca}|{l.grupo_chave or '?'}"
+    return f"{marca}|{fam}|{l.ano_modelo or '?'}"
+
+
+def _score_focado(db: Session, listings: list[VehicleListing], params: ScoreParams) -> None:
+    """Scoreia APENAS o conjunto da busca com o engine de Preço de Mercado.
+
+    Referência hierárquica (versão+ano → modelo+ano) calculada DENTRO do engine;
+    a FIPE só é consultada p/ anúncios em que NENHUM nível tem volume (e com teto,
+    p/ não travar a busca — no Render o circuit-breaker já pula tudo).
     """
     if not listings:
         return
-    # agrupa por grupo_chave (carros idênticos)
-    grupos: dict[str, list] = {}
+    n_versao: dict[str, int] = {}
+    n_modelo: dict[str, int] = {}
     for l in listings:
-        grupos.setdefault(l.grupo_chave or "?", []).append(l)
+        n_versao[l.grupo_chave or "?"] = n_versao.get(l.grupo_chave or "?", 0) + 1
+        gm = _grupo_modelo(l)
+        n_modelo[gm] = n_modelo.get(gm, 0) + 1
 
-    # FIPE só p/ grupos pequenos, UMA vez por grupo e com teto (evita lentidão/403)
+    # FIPE só p/ quem não tem comparável em nível nenhum, 1x por grupo, com teto
     MAX_FIPE = 12
     fipe_por_grupo: dict[str, int | None] = {}
-    # singleton: cacheia a indisponibilidade da FIPE entre buscas (não fecha)
     fc = get_fipe_client()
     usa_fipe = fc.valor_disponivel()  # no Render a FIPE bloqueia → pula (rápido)
     resolvidos = 0
-    for chave, grp in grupos.items():
-        if len(grp) >= params.min_grupo:
-            continue  # tem volume → MERCADO, sem FIPE
-        rep = grp[0]
-        if usa_fipe and resolvidos < MAX_FIPE and rep.marca and rep.ano_modelo:
-            val, _cod = fc.resolver(rep.marca, rep.modelo, rep.ano_modelo, rep.versao)
+    for l in listings:
+        chave = l.grupo_chave or "?"
+        if (n_versao[chave] >= params.min_grupo
+                or n_modelo[_grupo_modelo(l)] >= params.min_grupo
+                or chave in fipe_por_grupo):
+            continue
+        if usa_fipe and resolvidos < MAX_FIPE and l.marca and l.ano_modelo:
+            val, _cod = fc.resolver(l.marca, l.modelo, l.ano_modelo, l.versao)
             fipe_por_grupo[chave] = val
             resolvidos += 1
 
     inputs = []
     for l in listings:
-        usa_mercado = len(grupos[l.grupo_chave or "?"]) >= params.min_grupo
-        l.fipe_valor = None if usa_mercado else fipe_por_grupo.get(l.grupo_chave or "?")
+        chave = l.grupo_chave or "?"
+        l.fipe_valor = fipe_por_grupo.get(chave)
         l.faixa_km = faixa_de_km(l.km, params.faixas_km)
         if l.preco:
-            inputs.append(ScoreInput(id=l.id, grupo_chave=l.grupo_chave or "?",
+            inputs.append(ScoreInput(id=l.id, grupo_versao=chave,
+                                     grupo_modelo=_grupo_modelo(l),
                                      preco=l.preco, km=l.km, fipe_valor=l.fipe_valor))
 
     resultados = {r.id: r for r in calcular_scores(inputs, params)}
