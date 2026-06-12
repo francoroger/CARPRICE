@@ -9,6 +9,14 @@ A cada alteração: nova versão + entrada aqui + documentação atualizada + pu
 ## [Não lançado]
 - (próximas alterações entram aqui)
 
+## [0.10.4] - 2026-05-30
+### Changed
+- **Ano agora é faixa "De/Até" também com modelo selecionado** (pedido p/ monitorar
+  vários anos): os dois seletores usam os anos REAIS do modelo na FIPE e mantêm o
+  vínculo com a Versão — a lista mostra só as versões que existem dentro da faixa
+  (GOL: faixa 2015–2018 → 105 versões viram 36). Faixa invertida se auto-corrige
+  e escolher uma versão fora da faixa ajusta a faixa para os anos dela.
+
 ## [0.10.3] - 2026-05-30
 ### Added
 - **Botão "Ver resultados" em cada monitor**: a varredura dizia "78 resultados"
