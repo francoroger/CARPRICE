@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { EMPTY_FILTRO, FiltroVeiculos, Inp, criteriosFromFiltro } from "../components/FiltroVeiculos.jsx";
+import { CarCard } from "./Busca.jsx";
 
 export function Monitors() {
   const [monitors, setMonitors] = useState([]);
@@ -8,9 +9,18 @@ export function Monitors() {
   const [nome, setNome] = useState("");
   const [threshold, setThreshold] = useState(8);
   const [saving, setSaving] = useState(false);
+  // resultados do monitor aberto: { id, nome, lista, loading }
+  const [res, setRes] = useState(null);
 
   async function load() { setMonitors(await api.listMonitors()); }
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    // varredura terminou → se há resultados abertos, atualiza
+    const recarrega = () => setRes((r) => { if (r) verResultados({ id: r.id, nome: r.nome, criterios_json: r.criterios }); return r; });
+    window.addEventListener("varredura-concluida", recarrega);
+    return () => window.removeEventListener("varredura-concluida", recarrega);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function create(e) {
     e.preventDefault();
@@ -33,7 +43,23 @@ export function Monitors() {
     await api.updateMonitor(m.id, { status: m.status === "ativo" ? "pausado" : "ativo" });
     load();
   }
-  async function remove(id) { await api.deleteMonitor(id); load(); }
+  async function remove(id) {
+    await api.deleteMonitor(id);
+    setRes((r) => (r && r.id === id ? null : r));
+    load();
+  }
+
+  // Mostra OS CARROS que o monitor encontra: mesma busca dos critérios dele.
+  // Vem do cache da última varredura/busca (<30min) → instantâneo.
+  async function verResultados(m) {
+    setRes({ id: m.id, nome: m.nome, criterios: m.criterios_json, lista: [], loading: true });
+    try {
+      const r = await api.search({ ...(m.criterios_json || {}) });
+      setRes({ id: m.id, nome: m.nome, criterios: m.criterios_json, lista: r.resultados, loading: false });
+    } catch {
+      setRes({ id: m.id, nome: m.nome, criterios: m.criterios_json, lista: [], loading: false, erro: true });
+    }
+  }
 
   return (
     <div className="grid lg:grid-cols-3 gap-6">
@@ -60,7 +86,7 @@ export function Monitors() {
       <div className="lg:col-span-2 space-y-3">
         {monitors.length === 0 && <p className="text-slate-400 text-sm">Nenhum monitor cadastrado.</p>}
         {monitors.map((m) => (
-          <div key={m.id} className="bg-white rounded-xl shadow-sm p-4 flex items-center justify-between gap-3">
+          <div key={m.id} className="bg-white rounded-xl shadow-sm p-4 flex items-center justify-between gap-3 flex-wrap">
             <div className="min-w-0">
               <div className="font-medium flex items-center gap-2">
                 {m.nome}
@@ -76,6 +102,10 @@ export function Monitors() {
               </div>
             </div>
             <div className="flex gap-2 shrink-0">
+              <button onClick={() => verResultados(m)}
+                className="text-sm px-3 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-500 font-medium">
+                Ver resultados
+              </button>
               <button onClick={() => toggle(m)} className="text-sm px-3 py-1 rounded border border-slate-200 hover:bg-slate-50">
                 {m.status === "ativo" ? "Pausar" : "Ativar"}
               </button>
@@ -85,6 +115,27 @@ export function Monitors() {
             </div>
           </div>
         ))}
+
+        {/* RESULTADOS DO MONITOR — os carros que ele encontra agora */}
+        {res && (
+          <div className="pt-2">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold">
+                Resultados de “{res.nome}”
+                {!res.loading && <span className="text-slate-400 font-normal"> — {res.lista.length} carros (mais barato primeiro)</span>}
+              </h3>
+              <button onClick={() => setRes(null)} className="text-sm text-slate-400 hover:text-slate-600">✕ fechar</button>
+            </div>
+            {res.loading && <p className="text-sm text-slate-400">⏳ Buscando os carros do monitor…</p>}
+            {res.erro && <p className="text-sm text-rose-500">Erro ao buscar — tente de novo.</p>}
+            {!res.loading && !res.erro && res.lista.length === 0 && (
+              <p className="text-sm text-slate-400">Nenhum carro encontrado com esses critérios agora.</p>
+            )}
+            <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              {res.lista.map((l) => <CarCard key={l.id} l={l} />)}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

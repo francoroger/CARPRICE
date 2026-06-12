@@ -9,6 +9,15 @@ A cada alteração: nova versão + entrada aqui + documentação atualizada + pu
 ## [Não lançado]
 - (próximas alterações entram aqui)
 
+## [0.10.3] - 2026-05-30
+### Added
+- **Botão "Ver resultados" em cada monitor**: a varredura dizia "78 resultados"
+  mas não havia onde VER os carros do monitor (o Ranking é o mercado global e os
+  alertas só aparecem acima do threshold). Agora cada monitor tem um botão que
+  abre os carros encontrados em cards (foto + avaliação, mais barato primeiro) —
+  instantâneo, direto do cache da varredura. Se uma varredura terminar com os
+  resultados abertos, eles se atualizam sozinhos.
+
 ## [0.10.2] - 2026-05-30
 ### Fixed
 - **Dropdowns de Marca/Modelo vazios ao abrir o site**: o backend free (Render)
