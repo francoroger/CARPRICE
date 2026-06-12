@@ -9,6 +9,13 @@ A cada alteração: nova versão + entrada aqui + documentação atualizada + pu
 ## [Não lançado]
 - (próximas alterações entram aqui)
 
+## [0.8.1] - 2026-05-30
+### Added
+- **Catálogo FIPE com anos completo**: as 7.273 versões de todas as 107 marcas agora
+  têm seus anos-modelo embutidos (`fipe_modelos.json`, ~673 KB). O vínculo
+  ano ↔ versão do filtro passa a funcionar para TODAS as marcas no Render
+  (ex.: GOL tem 105 versões; escolher 2018 mostra só as 5 que existem em 2018).
+
 ## [0.8.0] - 2026-05-30
 ### Changed
 - **Varredura dos monitores reformulada**: agora usa o MESMO pipeline da busca ao
