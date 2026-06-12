@@ -17,12 +17,32 @@ export default function App() {
   const [running, setRunning] = useState(false);
   const [msg, setMsg] = useState("");
 
+  // Varredura com PROGRESSO REAL: dispara e faz polling do status até concluir.
   async function runNow() {
     setRunning(true);
-    setMsg("");
+    setMsg("Iniciando varredura…");
     try {
-      await api.runScrape();
-      setMsg("Varredura iniciada — os resultados aparecem em instantes.");
+      const r = await api.runScrape();
+      if (r.status === "ja_rodando") setMsg("Uma varredura já está em andamento…");
+      for (let i = 0; i < 240; i++) {
+        await new Promise((res) => setTimeout(res, 2500));
+        const s = await api.scrapeStatus().catch(() => null);
+        if (!s) continue;
+        if (s.estado === "rodando") {
+          if (!s.monitores_total) setMsg("Preparando varredura…");
+          else setMsg(`⏳ Varrendo monitor ${Math.min((s.monitores_feitos || 0) + 1, s.monitores_total)}/${s.monitores_total}` +
+            (s.monitor_atual ? ` (${s.monitor_atual})` : "") + " — entrando nos portais, ~30-60s por monitor…");
+          continue;
+        }
+        if (s.erro) setMsg("Erro na varredura: " + s.erro);
+        else if (s.resumo && s.resumo.monitores === 0)
+          setMsg("Nenhum monitor cadastrado — a varredura roda os MONITORES. Crie um na aba Monitores (ou use a Busca direto).");
+        else if (s.resumo)
+          setMsg(`✓ Varredura concluída: ${s.resumo.monitores} monitor(es), ${s.resumo.resultados} resultados, ${s.resumo.notificados} alerta(s). Veja o Ranking.`);
+        else setMsg("✓ Varredura concluída.");
+        window.dispatchEvent(new Event("varredura-concluida"));
+        break;
+      }
     } catch (e) {
       setMsg("Erro: " + e.message);
     } finally {
@@ -43,7 +63,7 @@ export default function App() {
             disabled={running}
             className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 px-4 py-2 rounded-lg font-medium text-sm"
           >
-            {running ? "Rodando…" : "Varrer agora"}
+            {running ? "⏳ Varrendo…" : "Varrer agora"}
           </button>
         </div>
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 flex gap-1 overflow-x-auto">

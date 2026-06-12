@@ -9,6 +9,18 @@ A cada alteração: nova versão + entrada aqui + documentação atualizada + pu
 ## [Não lançado]
 - (próximas alterações entram aqui)
 
+## [0.10.1] - 2026-05-30
+### Fixed
+- **"Varrer agora" parecia travado**: a varredura rodava em segundo plano sem
+  nenhum feedback ("os resultados aparecem em instantes" e nada acontecia — no
+  Render cada monitor leva ~30-60s). Agora tem **progresso em tempo real**:
+  - novo `GET /api/scrape/status` (estado, monitor atual, X/Y concluídos, resumo);
+  - o botão mostra "⏳ Varrendo monitor 1/2 (nome) — entrando nos portais…";
+  - ao concluir: "✓ Varredura concluída: N monitores, X resultados, Y alertas";
+  - o **Ranking recarrega sozinho** quando a varredura termina;
+  - sem monitor cadastrado, avisa claramente (a varredura roda os MONITORES);
+  - trava de varredura dupla (clicar 2x não dispara duas).
+
 ## [0.10.0] - 2026-05-30
 ### Changed
 - **Score REFEITO do zero — "Preço de Mercado"**, calibrado numa análise de 3.887

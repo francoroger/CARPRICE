@@ -33,7 +33,12 @@ export function Ranking() {
       setLoading(false);
     }
   }
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    // recarrega quando o "Varrer agora" termina (evento global do App)
+    window.addEventListener("varredura-concluida", load);
+    return () => window.removeEventListener("varredura-concluida", load);
+  }, []);
 
   return (
     <div>

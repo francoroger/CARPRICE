@@ -24,6 +24,7 @@ export const api = {
   listings: (params = "") => req(`/api/listings${params}`),
   scrapeLogs: () => req("/api/scrape-logs"),
   runScrape: () => req("/api/scrape/run", { method: "POST" }),
+  scrapeStatus: () => req("/api/scrape/status"),
 
   fipeMarcas: () => req("/api/fipe/marcas"),
   fipeModelos: (marca) => req(`/api/fipe/modelos?marca=${encodeURIComponent(marca)}`),

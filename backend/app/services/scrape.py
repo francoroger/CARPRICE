@@ -264,7 +264,7 @@ def buscar_ao_vivo(db: Session, criterios: dict, ordenar: str = "preco_asc",
     return {"portais": portais_status, "total": len(rows), "rows": rows}
 
 
-def run_active_monitors(db: Session) -> dict:
+def run_active_monitors(db: Session, progresso=None) -> dict:
     """Varredura dos monitores = o MESMO pipeline da busca ao vivo, por monitor.
 
     Cada monitor roda `buscar_ao_vivo` com seus critérios → coleta paralela nos 6
@@ -272,20 +272,26 @@ def run_active_monitors(db: Session) -> dict:
     cache-first (monitores com critérios parecidos reaproveitam a coleta) e score
     focado. Depois notifica os matches NOVOS acima do threshold (anti-spam em
     MonitorMatch/Notification).
+
+    `progresso(dict)`: callback opcional p/ reportar andamento (status na UI).
     """
+    avisa = progresso or (lambda _d: None)
     params = get_score_params(db)
     ativos = db.scalars(
         select(Monitor).where(Monitor.status == MonitorStatus.ATIVO.value)
     ).all()
+    avisa({"monitores_total": len(ativos), "monitores_feitos": 0})
 
     total_resultados = 0
     notificados = 0
-    for m in ativos:
+    for i, m in enumerate(ativos, start=1):
+        avisa({"monitor_atual": m.nome or f"monitor #{m.id}"})
         try:
             resultado = buscar_ao_vivo(db, dict(m.criterios_json or {}),
                                        ordenar="desconto")
         except Exception:
             log.exception("varredura do monitor %s falhou — segue p/ o próximo", m.id)
+            avisa({"monitores_feitos": i})
             continue
         total_resultados += resultado["total"]
 
@@ -300,6 +306,7 @@ def run_active_monitors(db: Session) -> dict:
                     notificados += 1
         m.ultima_exec_em = datetime.now(timezone.utc)
         db.commit()
+        avisa({"monitores_feitos": i})
 
     resumo = {"monitores": len(ativos), "resultados": total_resultados,
               "notificados": notificados}
