@@ -9,6 +9,24 @@ A cada alteração: nova versão + entrada aqui + documentação atualizada + pu
 ## [Não lançado]
 - (próximas alterações entram aqui)
 
+## [0.8.0] - 2026-05-30
+### Changed
+- **Varredura dos monitores reformulada**: agora usa o MESMO pipeline da busca ao
+  vivo (`buscar_ao_vivo`) — coleta **paralela** nos 6 portais (antes era sequencial,
+  portal a portal), filtros **no servidor do CarroSP** (ano/km/preço/raio), **marca
+  canônica**, **cache-first** (monitores com critérios parecidos reaproveitam a
+  coleta) e **score focado** com circuit-breaker da FIPE. O código antigo
+  (`collect_for_monitor`/`recompute_scores`/`match_and_notify`) foi removido.
+- `normalizar_criterios()` centralizado em `buscar_ao_vivo`: qualquer chamador
+  (Busca, monitor salvo, scheduler) recebe a mesma normalização.
+### Fixed
+- **Monitor criado pelo formulário não casava nada**: o `criterios_json` guardava a
+  marca no rótulo da FIPE ("VW - VolksWagen") e a varredura antiga não convertia
+  para o nome canônico — a URL dos portais e o pós-filtro falhavam. Normalização
+  agora é aplicada na varredura (monitores existentes passam a funcionar sem
+  precisar recriar).
+- Varredura não derruba mais tudo se um monitor falhar (continua nos próximos).
+
 ## [0.7.0] - 2026-05-30
 ### Added
 - **Vínculo ano ↔ versão (FIPE)** no filtro de veículos: ao selecionar um modelo

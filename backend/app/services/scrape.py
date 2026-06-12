@@ -1,17 +1,15 @@
-"""Orquestração da varredura (§6 do PROJETO_v3).
+"""Orquestração da coleta — busca ao vivo E varredura dos monitores.
 
-Fluxo por execução:
-  1. Para cada monitor ativo, roda cada portal ativo (com auto-escalada de tier)
-     e faz upsert dos anúncios no MERCADO GLOBAL (dedup por hash).
-  2. Recalcula o score sobre TODO o mercado (FIPE como fallback em grupos pequenos).
-  3. Para cada monitor, casa os anúncios e notifica os novos acima do threshold.
+UM pipeline só (`buscar_ao_vivo`): coleta paralela nos portais ativos, filtros no
+servidor onde o portal suporta (CarroSP: ano/km/preço/raio), marca canônica,
+cache-first e score focado. A varredura (`run_active_monitors`) roda esse mesmo
+pipeline por monitor e notifica os matches novos acima do threshold.
 Degradação graciosa: um portal que falha é logado e pulado, sem derrubar o resto.
 """
 from __future__ import annotations
 
 import logging
 import time
-from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 
@@ -22,6 +20,7 @@ from app.collectors.base import (
     FetchError,
     SearchCriteria,
     fetcher_para_tier,
+    marca_canonica,
 )
 from app.collectors.normalize import to_listing_dict
 from app.collectors.registry import get_connector
@@ -35,7 +34,7 @@ from app.models import (
     VehicleListing,
 )
 from app.services import notifications
-from app.services.fipe import FipeClient, get_fipe_client, valor_fipe
+from app.services.fipe import get_fipe_client
 from app.services.filters import passa_filtros
 from app.services.scoring import ScoreInput, ScoreParams, calcular_scores, faixa_de_km
 from app.services.settings_service import get_score_params
@@ -45,7 +44,7 @@ MAX_TIER_AUTO = AccessTier.HTTP  # MVP só escala até o nível 1 (httpx)
 
 
 # --------------------------------------------------------------------------- #
-# 1) Coleta + upsert no mercado global
+# Upsert no mercado global (dedup por hash)
 # --------------------------------------------------------------------------- #
 
 
@@ -67,142 +66,24 @@ def _upsert_listing(db: Session, portal_id: int, dados: dict) -> bool:
     return True
 
 
-def collect_for_monitor(db: Session, monitor: Monitor) -> int:
-    """Roda todos os portais ativos para os critérios do monitor. Retorna nº coletado."""
-    criteria = SearchCriteria.from_dict(monitor.criterios_json or {})
-    portais = db.scalars(select(Portal).where(Portal.ativo.is_(True))).all()
-    total = 0
-
-    for portal in portais:
-        conn = get_connector(portal.slug)
-        if not conn:
-            continue
-        t0 = time.monotonic()
-        tier = AccessTier(portal.min_tier)
-        status, qtd, erro = "ok", 0, None
-        try:
-            if tier > MAX_TIER_AUTO:
-                raise FetchError(f"requer nível {tier} (não habilitado no MVP)")
-            fetch = fetcher_para_tier(tier)
-            raws = conn.search(criteria, fetch)
-            for raw in raws:
-                if _upsert_listing(db, portal.id, to_listing_dict(raw)):
-                    total += 1
-                qtd += 1
-            db.commit()
-        except (FetchError, NotImplementedError) as e:
-            status, erro = "falha", str(e)
-            db.rollback()
-            log.warning("portal %s falhou: %s", portal.slug, e)
-        except Exception as e:  # parsing inesperado — não derruba a varredura
-            status, erro = "erro", f"{type(e).__name__}: {e}"
-            db.rollback()
-            log.exception("erro no portal %s", portal.slug)
-
-        db.add(ScrapeLog(
-            portal_id=portal.id, monitor_id=monitor.id, tier_usado=int(tier),
-            status=status, qtd_resultados=qtd, erro=erro,
-            duracao_ms=int((time.monotonic() - t0) * 1000),
-        ))
-        db.commit()
-    return total
-
-
-# --------------------------------------------------------------------------- #
-# 2) Recálculo do score sobre o mercado global
-# --------------------------------------------------------------------------- #
-
-
-def recompute_scores(db: Session, params: ScoreParams, usar_fipe: bool = True) -> None:
-    listings = db.scalars(
-        select(VehicleListing).where(VehicleListing.ativo.is_(True))
-    ).all()
-    if not listings:
-        return
-
-    # FIPE só para grupos pequenos sem valor ainda (evita martelar a API).
-    # Em busca ao vivo passamos usar_fipe=False (grupo focado já tem volume p/ MERCADO).
-    por_grupo = Counter(l.grupo_chave for l in listings)
-    fc = FipeClient() if usar_fipe else None
-    try:
-        for l in listings:
-            if (usar_fipe and l.fipe_valor is None
-                    and por_grupo[l.grupo_chave] < params.min_grupo):
-                l.fipe_valor = valor_fipe(
-                    db, l.marca, l.modelo, l.ano_modelo, l.versao, client=fc
-                )
-            l.faixa_km = faixa_de_km(l.km, params.faixas_km)
-    finally:
-        if fc:
-            fc.close()
-
-    inputs = [
-        ScoreInput(id=l.id, grupo_chave=l.grupo_chave or "?", preco=l.preco,
-                   km=l.km, fipe_valor=l.fipe_valor)
-        for l in listings if l.preco
-    ]
-    resultados = {r.id: r for r in calcular_scores(inputs, params)}
-
-    # mantém no máximo 1 ListingScore por anúncio (atualiza ou cria)
-    existentes = {
-        s.listing_id: s
-        for s in db.scalars(select(ListingScore)).all()
-    }
-    agora = datetime.now(timezone.utc)
-    for lid, r in resultados.items():
-        s = existentes.get(lid)
-        if s is None:
-            s = ListingScore(listing_id=lid)
-            db.add(s)
-        s.preco_ref = r.preco_ref
-        s.desconto = r.desconto
-        s.origem_score = r.origem_score
-        s.score = r.score
-        s.calculado_em = agora
-    db.commit()
-
-
-# --------------------------------------------------------------------------- #
-# 3) Match por monitor + notificação
-# --------------------------------------------------------------------------- #
-
-
-def match_and_notify(db: Session, monitor: Monitor, params: ScoreParams) -> int:
-    """Casa anúncios com o monitor, ordena por score, notifica os novos. Retorna nº notificado."""
-    crit = monitor.criterios_json or {}
-    threshold = monitor.threshold_desconto or params.threshold_desconto
-
-    # join listing + score
-    rows = db.execute(
-        select(VehicleListing, ListingScore)
-        .join(ListingScore, ListingScore.listing_id == VehicleListing.id)
-        .where(VehicleListing.ativo.is_(True))
-    ).all()
-
-    candidatos = [
-        (l, s) for (l, s) in rows
-        if s.desconto is not None and s.desconto >= threshold and passa_filtros(l, crit)
-    ]
-    candidatos.sort(key=lambda ls: ls[1].score or 0, reverse=True)
-
-    notificados = 0
-    for pos, (listing, score) in enumerate(candidatos, start=1):
-        novo = notifications.registrar_match(db, monitor, listing, score.desconto, pos)
-        if novo and "email" in (monitor.canais_notif or []):
-            if notifications.enviar_email(db, monitor, listing, score, pos):
-                notificados += 1
-    db.commit()
-    return notificados
-
-
-# --------------------------------------------------------------------------- #
-# Orquestrador
-# --------------------------------------------------------------------------- #
-
-
 # --------------------------------------------------------------------------- #
 # Busca AO VIVO (on-demand) — entra em todos os portais em paralelo
+# A VARREDURA dos monitores usa este MESMO pipeline (run_active_monitors).
 # --------------------------------------------------------------------------- #
+
+
+def normalizar_criterios(criterios: dict) -> dict:
+    """Critérios prontos p/ coleta + filtro, venham da Busca ou de um monitor salvo.
+
+    - tira chaves vazias (None/""/[]),
+    - marca FIPE → canônica ('VW - VolksWagen' → 'Volkswagen'): sem isso a URL dos
+      portais e o pós-filtro não casam nada (monitor criado pelo formulário guarda
+      o rótulo da FIPE no criterios_json).
+    """
+    crit = {k: v for k, v in (criterios or {}).items() if v not in (None, "", [])}
+    if crit.get("marca"):
+        crit["marca"] = marca_canonica(crit["marca"])
+    return crit
 
 
 def _fetch_portal_raws(portal: Portal, criteria: SearchCriteria):
@@ -288,6 +169,7 @@ def buscar_ao_vivo(db: Session, criterios: dict, ordenar: str = "preco_asc",
     Senão (ou se `forcar`), coleta ao vivo em paralelo, persiste e scoreia.
     """
     params = get_score_params(db)
+    criterios = normalizar_criterios(criterios)
     criteria = SearchCriteria.from_dict(criterios)
 
     def _naive(dt):
@@ -350,24 +232,43 @@ def buscar_ao_vivo(db: Session, criterios: dict, ordenar: str = "preco_asc",
 
 
 def run_active_monitors(db: Session) -> dict:
+    """Varredura dos monitores = o MESMO pipeline da busca ao vivo, por monitor.
+
+    Cada monitor roda `buscar_ao_vivo` com seus critérios → coleta paralela nos 6
+    portais, filtros no servidor do CarroSP (ano/km/preço/raio), marca canônica,
+    cache-first (monitores com critérios parecidos reaproveitam a coleta) e score
+    focado. Depois notifica os matches NOVOS acima do threshold (anti-spam em
+    MonitorMatch/Notification).
+    """
     params = get_score_params(db)
     ativos = db.scalars(
         select(Monitor).where(Monitor.status == MonitorStatus.ATIVO.value)
     ).all()
 
-    coletados = 0
-    for m in ativos:
-        coletados += collect_for_monitor(db, m)
-
-    recompute_scores(db, params)
-
+    total_resultados = 0
     notificados = 0
     for m in ativos:
-        notificados += match_and_notify(db, m, params)
-        m.ultima_exec_em = datetime.now(timezone.utc)
-    db.commit()
+        try:
+            resultado = buscar_ao_vivo(db, dict(m.criterios_json or {}),
+                                       ordenar="desconto")
+        except Exception:
+            log.exception("varredura do monitor %s falhou — segue p/ o próximo", m.id)
+            continue
+        total_resultados += resultado["total"]
 
-    resumo = {"monitores": len(ativos), "novos_anuncios": coletados,
+        threshold = (m.threshold_desconto if m.threshold_desconto is not None
+                     else params.threshold_desconto)
+        candidatos = [(l, s) for (l, s, _slug) in resultado["rows"]
+                      if s.desconto is not None and s.desconto >= threshold]
+        for pos, (listing, score) in enumerate(candidatos, start=1):
+            novo = notifications.registrar_match(db, m, listing, score.desconto, pos)
+            if novo and "email" in (m.canais_notif or []):
+                if notifications.enviar_email(db, m, listing, score, pos):
+                    notificados += 1
+        m.ultima_exec_em = datetime.now(timezone.utc)
+        db.commit()
+
+    resumo = {"monitores": len(ativos), "resultados": total_resultados,
               "notificados": notificados}
     log.info("varredura concluída: %s", resumo)
     return resumo

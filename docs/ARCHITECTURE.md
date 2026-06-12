@@ -77,8 +77,15 @@ devolve `{codigo, nome, anos}` → o front cruza **ano ↔ versão** sem chamada
 escolher o ano filtra as versões e escolher a versão restringe os anos.
 
 ### Fluxo da busca ao vivo (`app/services/scrape.buscar_ao_vivo`)
-Coleta paralela (ThreadPoolExecutor) → upsert no mercado → filtra pelos critérios →
+`normalizar_criterios` (marca FIPE→canônica, vazios fora) → cache-first (<30min) →
+coleta paralela (ThreadPoolExecutor) → upsert no mercado → filtra pelos critérios →
 score focado (FIPE fresca p/ grupos pequenos) → ordena (preço/desconto) → devolve.
+
+### Varredura dos monitores (`run_active_monitors`)
+**Mesmo pipeline da busca ao vivo**, por monitor: cada monitor ativo roda
+`buscar_ao_vivo(criterios_json)` (paralelo + filtros server-side + cache-first +
+score focado) e notifica os matches novos acima do threshold (anti-spam por
+MonitorMatch/Notification). Um monitor que falha é logado e pulado.
 
 ### API (`app/api/`)
 `monitors` (CRUD), `listings` (rankeado), `settings` (score+portais), `ops`
