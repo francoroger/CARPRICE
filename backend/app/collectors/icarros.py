@@ -1,13 +1,16 @@
 """Conector iCarros (Nível 1). Cards `.offer-card`.
 
-URL de listagem real: /ache/listaanuncios.jsp (carros.jsp redireciona p/ home).
-O link do anúncio traz cidade-uf e marca: /comprar/{cidade}-{uf}/{marca}/...
+Busca filtrada NACIONAL: /comprar/usados/{marca}[/{modelo}] (SSR, paginada via
+?pag=N) — o pós-filtro de UF corta os de fora, pois o link do anúncio traz
+cidade-uf: /comprar/{cidade}-{uf}/{marca}/...
 """
 from __future__ import annotations
 
 from bs4 import BeautifulSoup
 
 from app.collectors.base import (
+    FetchError,
+    Fetcher,
     PortalConnector,
     RawListing,
     SearchCriteria,
@@ -18,6 +21,7 @@ from app.collectors.base import (
 )
 
 BASE = "https://www.icarros.com.br"
+MAX_PAGINAS = 5  # 20 cards/página
 
 
 class ICarrosConnector(PortalConnector):
@@ -26,10 +30,35 @@ class ICarrosConnector(PortalConnector):
     rate_limit_s = 2.0
 
     def build_search_url(self, criteria: SearchCriteria) -> str:
+        # /comprar/usados/{marca}[/{modelo}] filtra no servidor (sem UF na URL —
+        # resultados nacionais; a UF é cortada no pós-filtro via link do card).
+        if criteria.marca:
+            url = f"{BASE}/comprar/usados/{slug(criteria.marca)}"
+            if criteria.modelo:
+                url += f"/{slug(criteria.modelo)}"
+            return url
         if criteria.uf:
             cidade = slug(criteria.cidade or "sao-paulo")
             return f"{BASE}/comprar/usados/carros/{criteria.uf.lower()}-{cidade}"
         return f"{BASE}/ache/listaanuncios.jsp"
+
+    def search(self, criteria: SearchCriteria, fetch: Fetcher) -> list[RawListing]:
+        """Pagina via ?pag=N até repetir/zerar (20 cards/página)."""
+        url = self.build_search_url(criteria)
+        out: list[RawListing] = []
+        vistos: set[str] = set()
+        for pag in range(1, MAX_PAGINAS + 1):
+            page_url = url if pag == 1 else f"{url}?pag={pag}"
+            try:
+                listings = self.parse_listings(fetch.get(page_url))
+            except FetchError:
+                break
+            novos = [l for l in listings if l.url not in vistos]
+            if not novos:
+                break
+            vistos.update(l.url for l in novos)
+            out.extend(novos)
+        return out
 
     def parse_listings(self, html: str) -> list[RawListing]:
         soup = BeautifulSoup(html, "lxml")

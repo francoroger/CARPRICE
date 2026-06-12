@@ -27,6 +27,10 @@ class ComprecarConnector(PortalConnector):
     rate_limit_s = 2.0
 
     def build_search_url(self, criteria: SearchCriteria) -> str:
+        # /carros-usados/{marca}/{modelo} filtra de verdade no servidor (só-marca
+        # não existe — devolve página vazia; nesse caso cai na listagem da cidade).
+        if criteria.marca and criteria.modelo:
+            return f"{BASE}/carros-usados/{slug(criteria.marca)}/{slug(criteria.modelo)}"
         cidade = slug(criteria.cidade or "sao-paulo")
         return f"{BASE}/carros-usados/{cidade}"
 

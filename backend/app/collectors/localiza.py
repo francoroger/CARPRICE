@@ -28,9 +28,15 @@ class LocalizaConnector(PortalConnector):
     rate_limit_s = 2.5
 
     def build_search_url(self, criteria: SearchCriteria) -> str:
-        if criteria.uf:
-            cidade = slug(criteria.cidade or "sao-paulo")
-            return f"{BASE}/carros/{criteria.uf.lower()}-{cidade}"
+        # /carros/{uf}-{cidade}/{marca}/{modelo} filtra no servidor (SSR no
+        # __NEXT_DATA__). Só-marca NÃO filtra (devolve genérico) — exige modelo.
+        loc = (f"{criteria.uf.lower()}-{slug(criteria.cidade or 'sao-paulo')}"
+               if criteria.uf else None)
+        if criteria.marca and criteria.modelo:
+            alvo = f"{slug(criteria.marca)}/{slug(criteria.modelo)}"
+            return f"{BASE}/carros/{loc}/{alvo}" if loc else f"{BASE}/carros/{alvo}"
+        if loc:
+            return f"{BASE}/carros/{loc}"
         return f"{BASE}/carros"
 
     def parse_listings(self, html: str) -> list[RawListing]:

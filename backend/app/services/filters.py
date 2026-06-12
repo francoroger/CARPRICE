@@ -5,6 +5,8 @@ quanto pela busca ao vivo. Campos ausentes no critério são ignorados (não fil
 """
 from __future__ import annotations
 
+import re
+
 from app.collectors.normalize import _norm_txt
 from app.models import VehicleListing
 
@@ -18,13 +20,23 @@ def _texto(l: VehicleListing) -> str:
     return _compact(" ".join(filter(None, [l.marca, l.modelo, l.versao, l.cidade])))
 
 
+def _casa_modelo(modelo: str, alvo_compacto: str, alvo_espacado: str) -> bool:
+    """Modelo alfabético casa por PALAVRA INTEIRA ('gol' NÃO casa 'golf');
+    modelo com dígito/hífen casa compactado ('hb20' casa 'HB 20 Hatch')."""
+    mn = _norm_txt(modelo)
+    if mn.replace(" ", "").isalpha():
+        return re.search(rf"\b{re.escape(mn)}\b", alvo_espacado) is not None
+    return _compact(modelo) in alvo_compacto
+
+
 def passa_filtros(l: VehicleListing, crit: dict) -> bool:
     """True se o anúncio satisfaz todos os filtros informados no critério."""
     alvo = _texto(l)  # compactado (sem espaços) p/ tolerar 'HB20' vs 'HB 20'
+    alvo_esp = _norm_txt(" ".join(filter(None, [l.marca, l.modelo, l.versao, l.cidade])))
 
     if crit.get("marca") and _compact(crit["marca"]) not in alvo:
         return False
-    if crit.get("modelo") and _compact(crit["modelo"]) not in alvo:
+    if crit.get("modelo") and not _casa_modelo(crit["modelo"], alvo, alvo_esp):
         return False
     if crit.get("versao") and _compact(crit["versao"]) not in _compact(l.versao or ""):
         return False

@@ -9,6 +9,25 @@ A cada alteração: nova versão + entrada aqui + documentação atualizada + pu
 ## [Não lançado]
 - (próximas alterações entram aqui)
 
+## [0.9.0] - 2026-05-30
+### Added
+- **Coleta filtrada por modelo nos portais que só traziam genérico** (motivo de
+  Comprecar/Localiza/iCarros nunca aparecerem nos resultados — coletavam ~20
+  carros aleatórios da home regional e o pós-filtro descartava tudo):
+  - **Comprecar**: `/carros-usados/{marca}/{modelo}` (filtro no servidor).
+  - **Localiza**: `/carros/{uf}-{cidade}/{marca}/{modelo}` (SSR no `__NEXT_DATA__`).
+  - **iCarros**: `/comprar/usados/{marca}[/{modelo}]` nacional + paginação `?pag=N`
+    (até 100 cards); a UF é aplicada no pós-filtro (o link do card traz cidade-uf).
+  - Busca "Gol em SP": de 2 portais com resultados → **5 portais**
+    (carrosp 87, napista 43, icarros 42, comprecar 12, localiza 3).
+### Fixed
+- **GOLF não aparece mais na busca de GOL**: modelo alfabético casa por palavra
+  inteira; modelo com dígito/hífen (HB20, T-CROSS) segue casando compactado.
+  Testes novos em `tests/test_filters.py`.
+### Known
+- **Mobiauto** passou a renderizar 100% client-side (página placeholder p/ httpx) —
+  segue ativo mas sem resultados até o tier navegador (Fase 2).
+
 ## [0.8.1] - 2026-05-30
 ### Added
 - **Catálogo FIPE com anos completo**: as 7.273 versões de todas as 107 marcas agora
