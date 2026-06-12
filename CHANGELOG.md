@@ -9,6 +9,17 @@ A cada alteração: nova versão + entrada aqui + documentação atualizada + pu
 ## [Não lançado]
 - (próximas alterações entram aqui)
 
+## [0.9.1] - 2026-05-30
+### Fixed
+- **Fotos do Napista nos cards**: o lazy-load só deixava `<img src>` nos ~8 primeiros
+  cards do SSR (40/48 ficavam sem foto). Agora o conector lê a foto de TODOS os
+  anúncios do **JSON-LD** da página (`"@id":".../anuncios/{uuid}","image":...`) —
+  48/48 com foto.
+- **Upsert atualiza a foto**: anúncio já conhecido no banco nunca recebia a foto
+  descoberta numa coleta posterior (2.118 anúncios do Napista estavam sem foto no
+  banco por isso). O upsert agora atualiza `foto_url` (e cidade/UF se faltavam) —
+  as fotos antigas se corrigem conforme as buscas ao vivo rodam.
+
 ## [0.9.0] - 2026-05-30
 ### Added
 - **Coleta filtrada por modelo nos portais que só traziam genérico** (motivo de

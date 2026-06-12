@@ -60,6 +60,12 @@ class NapistaConnector(PortalConnector):
 
     def parse_listings(self, html: str) -> list[RawListing]:
         soup = BeautifulSoup(html, "lxml")
+        # Lazy-load: só os ~8 primeiros cards têm <img src> no SSR. Mas o JSON-LD
+        # da página traz a foto de TODOS: "@id":".../anuncios/{uuid}","image":"..."
+        fotos_ld = dict(re.findall(
+            r'"@id":"https://napista\.com\.br(/anuncios/[0-9a-f-]+)","image":"([^"]+)"',
+            html,
+        ))
         out: list[RawListing] = []
         seen: set[str] = set()
         for a in soup.select("a[href*='/anuncios/']"):
@@ -77,6 +83,9 @@ class NapistaConnector(PortalConnector):
             # título = trecho antes do R$
             titulo = texto.split("R$")[0].strip() or None
             img = a.find("img")
+            foto = (img.get("src") or img.get("data-src")) if img else None
+            if not foto:
+                foto = fotos_ld.get(href if href.startswith("/") else href.removeprefix(BASE))
             out.append(
                 RawListing(
                     portal_slug=self.slug,
@@ -88,7 +97,7 @@ class NapistaConnector(PortalConnector):
                     km=extrai_km(texto),
                     cidade=cidade,
                     uf=uf,
-                    foto_url=(img.get("src") or img.get("data-src")) if img else None,
+                    foto_url=foto,
                 )
             )
         return out

@@ -57,6 +57,12 @@ def _upsert_listing(db: Session, portal_id: int, dados: dict) -> bool:
     if existente:
         existente.preco = dados["preco"]
         existente.km = dados["km"]
+        # campos que podem ter melhorado entre coletas (ex.: foto que era lazy)
+        if dados.get("foto_url"):
+            existente.foto_url = dados["foto_url"]
+        if dados.get("cidade") and not existente.cidade:
+            existente.cidade = dados["cidade"]
+            existente.uf = dados.get("uf") or existente.uf
         existente.ultimo_visto_em = agora
         existente.ativo = True
         return False
