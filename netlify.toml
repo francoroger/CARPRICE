@@ -4,7 +4,9 @@
 
 [build]
   base = "frontend"
-  command = "npm run build"
+  # copy-meta atualiza public/CHANGELOG.md e public/VERSION antes do build (os
+  # arquivos também são commitados, como garantia). A página "Versões" os consome.
+  command = "node scripts/copy-meta.mjs && npm run build"
   publish = "dist"
 
 [build.environment]

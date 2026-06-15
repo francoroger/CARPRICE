@@ -2,6 +2,5 @@ node_modules/
 dist/
 *.local
 
-# arquivos gerados pelo prebuild (copy-meta)
-public/CHANGELOG.md
-public/VERSION
+# public/CHANGELOG.md e public/VERSION são COMMITADOS (gerados por copy-meta no
+# prebuild, mas versionados p/ garantir que cheguem ao dist no deploy do Netlify).
