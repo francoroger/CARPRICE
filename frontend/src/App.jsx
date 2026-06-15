@@ -4,12 +4,14 @@ import { Busca } from "./views/Busca.jsx";
 import { Monitors } from "./views/Monitors.jsx";
 import { Ranking } from "./views/Ranking.jsx";
 import { Settings } from "./views/Settings.jsx";
+import { Historico } from "./views/Historico.jsx";
 
 const TABS = [
   { id: "busca", label: "Busca" },
   { id: "ranking", label: "Ranking" },
   { id: "monitors", label: "Monitores" },
   { id: "settings", label: "Configurações" },
+  { id: "historico", label: "Versões" },
 ];
 
 export default function App() {
@@ -94,6 +96,7 @@ export default function App() {
         {tab === "ranking" && <Ranking />}
         {tab === "monitors" && <Monitors />}
         {tab === "settings" && <Settings />}
+        {tab === "historico" && <Historico />}
       </main>
     </div>
   );

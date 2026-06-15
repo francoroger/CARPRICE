@@ -9,6 +9,14 @@ A cada alteração: nova versão + entrada aqui + documentação atualizada + pu
 ## [Não lançado]
 - (próximas alterações entram aqui)
 
+## [0.10.8] - 2026-05-30
+### Added
+- **Aba "Versões"**: página de histórico no app que lê o `CHANGELOG.md` e o `VERSION`
+  (mesma fonte de verdade do versionamento) e mostra a **versão atual**, a **última
+  edição implementada** em destaque e a **linha do tempo de todas as versões** com
+  cada alteração rotulada (Novo / Mudou / Corrigido / Limitação). Um passo de build
+  (`scripts/copy-meta.mjs` no prebuild) publica os arquivos para o front consumir.
+
 ## [0.10.7] - 2026-05-30
 ### Fixed
 - **Filtro por VERSÃO trazia quase nada** (ex.: Commander Limited 2023 → 1 carro,

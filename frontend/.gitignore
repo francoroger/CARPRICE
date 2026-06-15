@@ -1,3 +1,7 @@
 node_modules/
 dist/
 *.local
+
+# arquivos gerados pelo prebuild (copy-meta)
+public/CHANGELOG.md
+public/VERSION
