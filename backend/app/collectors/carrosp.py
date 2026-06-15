@@ -30,27 +30,24 @@ ITENS_POR_PAGINA = 21
 MAX_PAGINAS = 8  # teto p/ velocidade (≈170 anúncios); páginas buscadas em paralelo
 
 
-def _local(criteria: SearchCriteria) -> str:
-    if criteria.cidade and criteria.uf:
-        return f"{_slug(criteria.cidade)}-{criteria.uf.lower()}"
-    if criteria.uf:
-        return f"sao-paulo-{criteria.uf.lower()}"  # fallback razoável
-    return "sao-paulo-sp"
-
-
 class CarroSPConnector(PortalConnector):
     slug = "carrosp"
     nome = "CarroSP"
     rate_limit_s = 2.0
 
     def build_search_url(self, criteria: SearchCriteria) -> str:
-        loc = _local(criteria)
+        # GEOGRAFIA: o CarroSP filtra por CIDADE no caminho (/carros/{cidade}-{uf}/…)
+        # e NÃO tem filtro por estado. Sem cidade específica usamos a URL "todas as
+        # cidades" (/carros/{marca}/{modelo}/) — antes forçávamos a capital
+        # (sao-paulo-sp) e perdíamos o interior (Commander caía de 125 → 21).
+        loc = (f"{_slug(criteria.cidade)}-{criteria.uf.lower()}/"
+               if criteria.cidade and criteria.uf else "")
         if criteria.marca and criteria.modelo:
-            base = f"{BASE}/carros/{loc}/{_slug(criteria.marca)}/{_slug(criteria.modelo)}/"
+            base = f"{BASE}/carros/{loc}{_slug(criteria.marca)}/{_slug(criteria.modelo)}/"
         elif criteria.marca:  # só marca → traz a marca toda (não /todos/)
-            base = f"{BASE}/carros/{loc}/{_slug(criteria.marca)}/"
+            base = f"{BASE}/carros/{loc}{_slug(criteria.marca)}/"
         else:
-            base = f"{BASE}/carros/{loc}/todos/"
+            base = f"{BASE}/carros/{loc}todos/"
 
         # FILTROS NO SERVIDOR do CarroSP — sem isso, ano/preço/km específicos podem
         # não aparecer nas 1ªs páginas (a ordem é por relevância, não por ano) e a
@@ -133,10 +130,24 @@ class CarroSPConnector(PortalConnector):
                     ano_modelo=ano_modelo or extrai_ano(texto),
                     preco=preco,
                     km=extrai_km(texto),
+                    cidade=_cidade_do_card(card),
+                    # CarroSP é um portal de São Paulo: o inventário é de SP (cidades
+                    # do interior). O card traz só a cidade, sem UF → assumimos SP,
+                    # o que mantém o filtro por estado correto p/ buscas em SP.
+                    uf="SP",
                     foto_url=foto,
                 )
             )
         return out
+
+
+def _cidade_do_card(card) -> str | None:
+    """Cidade exibida no card (ao lado do pin). Ex.: 'Campinas'."""
+    el = card.select_one(".text-dark.ml-1") or card.select_one(".text-color-2.card-info")
+    if not el:
+        return None
+    cidade = el.get_text(" ", strip=True)
+    return cidade or None
 
 
 def _total_anuncios(html: str) -> int | None:

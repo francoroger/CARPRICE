@@ -9,6 +9,18 @@ A cada alteração: nova versão + entrada aqui + documentação atualizada + pu
 ## [Não lançado]
 - (próximas alterações entram aqui)
 
+## [0.10.5] - 2026-05-30
+### Fixed
+- **CarroSP trazia MUITO menos carros que a busca nativa dele**: quando não havia
+  cidade específica, o conector forçava `sao-paulo-sp` (a CAPITAL) na URL e perdia
+  todo o interior. O CarroSP não tem filtro por estado na URL — a forma "todas as
+  cidades" é `/carros/{marca}/{modelo}/`. Agora usamos essa URL quando não há
+  cidade escolhida: **Jeep Commander 2023 foi de 21 → 125 carros** (Campinas,
+  Bauru, Piracicaba, Americana, Ribeirão Preto… todo o interior de SP).
+- O card do CarroSP passa a trazer a **cidade**; UF assume **SP** (o portal é de São
+  Paulo) para o filtro por estado continuar correto. Com cidade específica, mantém
+  a URL precisa `/carros/{cidade}-{uf}/…` + raio (`distancia`).
+
 ## [0.10.4] - 2026-05-30
 ### Changed
 - **Ano agora é faixa "De/Até" também com modelo selecionado** (pedido p/ monitorar
