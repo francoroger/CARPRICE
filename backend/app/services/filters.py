@@ -29,6 +29,68 @@ def _casa_modelo(modelo: str, alvo_compacto: str, alvo_espacado: str) -> bool:
     return _compact(modelo) in alvo_compacto
 
 
+# Palavras NÃO-distintivas de versão (transmissão, combustível, carroceria, fillers).
+# Cada portal escreve a versão diferente; o que diferencia é o TRIM + a cilindrada.
+_VERSAO_NOISE = {
+    # transmissão
+    "aut", "auto", "automatico", "automatica", "automatizado", "autom", "mec",
+    "manual", "mt", "at", "cvt", "dct", "tiptronic", "at6", "at9",
+    # combustível / indução
+    "flex", "flexpower", "power", "fpower", "gasolina", "gas", "alcool", "etanol",
+    "diesel", "die", "dies", "turbo", "tb", "td", "tdi", "tsi", "gdi", "vhc",
+    "vvt", "mpi", "msi",
+    # carroceria
+    "hatch", "sedan", "sed", "suv", "coupe", "perua", "conversivel", "cabriolet",
+    # marketing / genéricos
+    "novo", "nova", "new", "total", "mi",
+    # portas / lugares / tração
+    "portas", "port", "lugares", "lugar", "passageiros", "pas", "awd", "4wd", "fwd",
+}
+
+
+def _tok_versao(palavra: str, tokens_anuncio: set[str]) -> bool:
+    """Trim casa por igualdade OU prefixo (≥3 letras): 'Overl.'↔'Overland',
+    'Comfort'↔'Comfortline'. 'LT' NÃO casa 'LTZ' (prefixo só ≥3 → trims curtos
+    exigem igualdade exata, separando LT/LTZ/LS)."""
+    if palavra in tokens_anuncio:
+        return True
+    for t in tokens_anuncio:
+        curto, longo = (palavra, t) if len(palavra) <= len(t) else (t, palavra)
+        if len(curto) >= 3 and longo.startswith(curto):
+            return True
+    return False
+
+
+def _casa_versao(versao_fipe: str, versao_anuncio: str | None, modelo: str | None) -> bool:
+    """Casa a versão FIPE com a do anúncio por TRIM + cilindrada (não substring).
+
+    A versão FIPE ('Commander Limited T270 1.3 TB Flex Aut.') e a do anúncio
+    ('1.3 16v 4p flex t270 limited turbo automatico') usam ordem/tokens diferentes
+    → substring nunca casava. Exigimos: (1) toda palavra-TRIM da FIPE (alfabética,
+    fora do ruído e do nome do modelo) presente no anúncio; (2) a cilindrada
+    (1.3/2.0), se a FIPE tiver, igual. Assim 'Limited' ≠ 'Longitude' e a flex 1.3
+    se separa da diesel 2.0.
+    """
+    alvo = _norm_txt(versao_fipe)
+    cand = _norm_txt(versao_anuncio or "")
+    if not cand:
+        return False
+    tokens = set(cand.split())
+    modelo_toks = set(_norm_txt(modelo or "").split())
+    trim = [t for t in alvo.split()
+            if t.isalpha() and len(t) >= 2
+            and t not in _VERSAO_NOISE and t not in modelo_toks]
+    for palavra in trim:
+        if not _tok_versao(palavra, tokens):
+            return False
+    m = re.search(r"\d[.,]\d", versao_fipe or "")
+    if m:
+        disp = m.group(0).replace(",", ".")
+        if disp not in (versao_anuncio or "") and disp.replace(".", " ") not in cand:
+            return False
+    return True
+
+
 def passa_filtros(l: VehicleListing, crit: dict) -> bool:
     """True se o anúncio satisfaz todos os filtros informados no critério."""
     alvo = _texto(l)  # compactado (sem espaços) p/ tolerar 'HB20' vs 'HB 20'
@@ -38,7 +100,7 @@ def passa_filtros(l: VehicleListing, crit: dict) -> bool:
         return False
     if crit.get("modelo") and not _casa_modelo(crit["modelo"], alvo, alvo_esp):
         return False
-    if crit.get("versao") and _compact(crit["versao"]) not in _compact(l.versao or ""):
+    if crit.get("versao") and not _casa_versao(crit["versao"], l.versao, crit.get("modelo")):
         return False
     # Localização: o ESTADO (UF) é o filtro real; a cidade é só um ponto de coleta
     # (os portais devolvem resultados REGIONAIS — filtrar por cidade exata cortaria

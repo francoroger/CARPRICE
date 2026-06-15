@@ -9,6 +9,19 @@ A cada alteração: nova versão + entrada aqui + documentação atualizada + pu
 ## [Não lançado]
 - (próximas alterações entram aqui)
 
+## [0.10.7] - 2026-05-30
+### Fixed
+- **Filtro por VERSÃO trazia quase nada** (ex.: Commander Limited 2023 → 1 carro,
+  sendo que só o CarroSP tem 14): o filtro exigia a string da versão FIPE como
+  substring exata da versão do anúncio, mas cada portal escreve a versão em ordem
+  e tokens diferentes ("Commander Limited T270 1.3 TB Flex Aut." vs "1.3 16v 4p
+  flex t270 limited turbo automatico") → não casava nada. Agora casa por **TRIM +
+  cilindrada**: exige as palavras de trim da FIPE (Limited/Longitude/Overland…,
+  ignorando ruído de câmbio/combustível/carroceria/marketing) e a cilindrada
+  (1.3 ≠ 2.0). Resultado validado: Commander Limited 2023 → **51 carros (CarroSP
+  14, igual ao nativo)**, 100% Limited; separa flex 1.3 de diesel 2.0; "LT" não
+  casa "LTZ". Testes novos em `tests/test_filters.py`.
+
 ## [0.10.6] - 2026-05-30
 ### Fixed
 - **Campo Ano aceitava lixo** (ex.: "-2") quando nenhum modelo estava selecionado e
