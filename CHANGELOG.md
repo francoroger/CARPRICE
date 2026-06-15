@@ -9,6 +9,17 @@ A cada alteração: nova versão + entrada aqui + documentação atualizada + pu
 ## [Não lançado]
 - (próximas alterações entram aqui)
 
+## [0.10.6] - 2026-05-30
+### Fixed
+- **Campo Ano aceitava lixo** (ex.: "-2") quando nenhum modelo estava selecionado e
+  a Versão mostrava "Versões de -2…": os campos numéricos (Ano/Preço/Km) agora só
+  aceitam dígitos (bloqueiam "-", "e", ".", letras e colar lixo); o Ano livre limita
+  a 4 dígitos. Validado no navegador: "-2"→"2", "20188"→"2018", "-500"→"500".
+- **Placeholder da Versão** só mostra "Versões de X–Y" quando há um modelo com dados
+  de ano selecionado; sem modelo exibe "Todas as versões".
+- A lista de versões não é mais esvaziada por engano quando o modelo ainda não tem
+  dados de ano carregados.
+
 ## [0.10.5] - 2026-05-30
 ### Fixed
 - **CarroSP trazia MUITO menos carros que a busca nativa dele**: quando não havia

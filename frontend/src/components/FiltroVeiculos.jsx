@@ -72,12 +72,13 @@ export function FiltroVeiculos({ value: f, onChange: setF }) {
   }, [versoes, f.versao]);
   // faixa de ano selecionada limita as versões: mostra as que existem na faixa.
   const versoesFiltradas = useMemo(() => {
+    if (!temAnos) return versoes; // sem dados de ano → não filtra (não esvazia)
     const de = Number(f.ano_min) || null;
     const ate = Number(f.ano_max) || null;
     if (!de && !ate) return versoes;
     return versoes.filter((v) =>
       (v.anos || []).some((a) => (!de || a >= de) && (!ate || a <= ate)));
-  }, [versoes, f.ano_min, f.ano_max]);
+  }, [versoes, temAnos, f.ano_min, f.ano_max]);
 
   async function onEstado(uf) {
     setF({ ...f, uf, cidade: "", raio_km: "" });
@@ -153,14 +154,14 @@ export function FiltroVeiculos({ value: f, onChange: setF }) {
         </Group>
       ) : (
         <Group label="Ano">
-          <Inp ph="De" value={f.ano_min} onChange={(v) => setF({ ...f, ano_min: v })} />
-          <Inp ph="Até" value={f.ano_max} onChange={(v) => setF({ ...f, ano_max: v })} />
+          <Inp ph="De" value={f.ano_min} maxLen={4} onChange={(v) => setF({ ...f, ano_min: v })} />
+          <Inp ph="Até" value={f.ano_max} maxLen={4} onChange={(v) => setF({ ...f, ano_max: v })} />
         </Group>
       )}
 
       <Select label="Versão" value={f.versao} onChange={onVersao} disabled={!f.modelo}
         options={versoesFiltradas.map((v) => ({ value: v.nome, label: v.nome }))}
-        placeholder={f.ano_min || f.ano_max
+        placeholder={f.modelo && temAnos && (f.ano_min || f.ano_max)
           ? `Versões de ${f.ano_min || "…"}–${f.ano_max || "…"}`
           : "Todas as versões"} />
       <Group label="Preço (R$)">
@@ -224,9 +225,18 @@ export function Select({ label, value, onChange, options, placeholder, disabled 
     </label>
   );
 }
-export function Inp({ ph, value, onChange }) {
-  return <input type="number" placeholder={ph} value={value}
-    onChange={(e) => onChange(e.target.value)} className="input w-full" />;
+// Entrada numérica robusta: só dígitos (bloqueia "-", "e", ".", colar lixo).
+// `maxLen` limita o nº de dígitos (ex.: 4 p/ ano). Sem decimais/negativos.
+export function Inp({ ph, value, onChange, maxLen }) {
+  return (
+    <input type="text" inputMode="numeric" placeholder={ph} value={value}
+      onChange={(e) => {
+        let v = e.target.value.replace(/\D/g, "");
+        if (maxLen) v = v.slice(0, maxLen);
+        onChange(v);
+      }}
+      className="input w-full" />
+  );
 }
 export function Group({ label, children }) {
   return (
