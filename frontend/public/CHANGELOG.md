@@ -9,6 +9,15 @@ A cada alteração: nova versão + entrada aqui + documentação atualizada + pu
 ## [Não lançado]
 - (próximas alterações entram aqui)
 
+## [0.13.3] - 2026-06-16
+### Fixed
+- **Versão base sumia ao filtrar por versão**: a FIPE nomeia por TRIM ("Gol
+  Trendline 1.6") mas os portais às vezes pela engine ("1.6 4p Flex Msi", sem
+  trim). Exigir o trim fazia o carro base desaparecer. Agora o anúncio SEM trim
+  reconhecível casa só pela cilindrada (aparece sob qualquer trim daquela
+  cilindrada); anúncio COM trim diferente continua separado (City ≠ Trendline,
+  Limited ≠ Longitude). Ex.: Gol "Trendline 1.6" passou a trazer os "1.6 MSI".
+
 ## [0.13.2] - 2026-06-16
 ### Fixed
 - **Modelos "letra + número" colapsavam** (Volvo mostrava só "XC" no lugar de

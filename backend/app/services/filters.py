@@ -61,15 +61,23 @@ def _tok_versao(palavra: str, tokens_anuncio: set[str]) -> bool:
     return False
 
 
+def _trims_versao(texto_norm: str, modelo_toks: set[str]) -> list[str]:
+    """Palavras-TRIM de uma versão (alfabéticas, fora do ruído e do nome do modelo)."""
+    return [t for t in texto_norm.split()
+            if t.isalpha() and len(t) >= 2
+            and t not in _VERSAO_NOISE and t not in modelo_toks]
+
+
 def _casa_versao(versao_fipe: str, versao_anuncio: str | None, modelo: str | None) -> bool:
     """Casa a versão FIPE com a do anúncio por TRIM + cilindrada (não substring).
 
-    A versão FIPE ('Commander Limited T270 1.3 TB Flex Aut.') e a do anúncio
-    ('1.3 16v 4p flex t270 limited turbo automatico') usam ordem/tokens diferentes
-    → substring nunca casava. Exigimos: (1) toda palavra-TRIM da FIPE (alfabética,
-    fora do ruído e do nome do modelo) presente no anúncio; (2) a cilindrada
-    (1.3/2.0), se a FIPE tiver, igual. Assim 'Limited' ≠ 'Longitude' e a flex 1.3
-    se separa da diesel 2.0.
+    A FIPE nomeia por TRIM ('Gol Trendline 1.6 T.Flex'); os portais às vezes pela
+    ENGINE ('1.6 4p Flex Msi', sem trim). Regra:
+      1. cilindrada (1.3/1.6/2.0), se a FIPE tiver, precisa bater;
+      2. se o anúncio NÃO tem trim reconhecível (versão base), casa só pela
+         cilindrada — senão o carro base sumia ao escolher um trim;
+      3. se o anúncio TEM trim, exige os trims da FIPE presentes (assim 'Limited'
+         ≠ 'Longitude', 'Trendline' ≠ 'Comfortline').
     """
     alvo = _norm_txt(versao_fipe)
     cand = _norm_txt(versao_anuncio or "")
@@ -77,16 +85,21 @@ def _casa_versao(versao_fipe: str, versao_anuncio: str | None, modelo: str | Non
         return False
     tokens = set(cand.split())
     modelo_toks = set(_norm_txt(modelo or "").split())
-    trim = [t for t in alvo.split()
-            if t.isalpha() and len(t) >= 2
-            and t not in _VERSAO_NOISE and t not in modelo_toks]
-    for palavra in trim:
-        if not _tok_versao(palavra, tokens):
-            return False
+
+    # 1) cilindrada
     m = re.search(r"\d[.,]\d", versao_fipe or "")
     if m:
         disp = m.group(0).replace(",", ".")
         if disp not in (versao_anuncio or "") and disp.replace(".", " ") not in cand:
+            return False
+
+    # 2) anúncio base (sem trim) → cilindrada já basta
+    if not _trims_versao(cand, modelo_toks):
+        return True
+
+    # 3) anúncio com trim → precisa conter os trims da FIPE
+    for palavra in _trims_versao(alvo, modelo_toks):
+        if not _tok_versao(palavra, tokens):
             return False
     return True
 
