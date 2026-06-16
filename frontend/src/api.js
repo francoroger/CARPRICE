@@ -41,6 +41,8 @@ export const api = {
   register: (nome, email, senha) => req("/api/auth/register", { method: "POST", body: JSON.stringify({ nome, email, senha }) }),
   login: (email, senha) => req("/api/auth/login", { method: "POST", body: JSON.stringify({ email, senha }) }),
   me: () => req("/api/auth/me"),
+  updateMe: (data) => req("/api/auth/me", { method: "PATCH", body: JSON.stringify(data) }),
+  alerts: () => req("/api/account/alerts"),
   // conta (carros salvos + histórico) — exigem login
   savedList: () => req("/api/account/saved"),
   savedAdd: (url, dados) => req("/api/account/saved", { method: "POST", body: JSON.stringify({ url, dados }) }),

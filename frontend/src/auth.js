@@ -29,6 +29,9 @@ export async function cadastrar(nome, email, senha) {
 }
 export function sair() { aplica(null, null); }
 
+// Atualiza o usuário guardado (ex.: após editar o perfil) mantendo o token.
+export function setUsuario(user) { aplica(getToken(), user); }
+
 // valida o token no load (se expirou, desloga)
 export async function revalidar() {
   if (!getToken()) return;

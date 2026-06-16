@@ -8,14 +8,19 @@ import { Settings } from "./views/Settings.jsx";
 import { Historico } from "./views/Historico.jsx";
 import { Versoes } from "./views/Versoes.jsx";
 import { Login } from "./views/Login.jsx";
+import { MinhaConta } from "./views/MinhaConta.jsx";
+import { Alertas } from "./views/Alertas.jsx";
 
-const TABS = [
-  { id: "busca", label: "Busca" },
-  { id: "monitors", label: "Monitores" },
-  { id: "historico", label: "Histórico" },
-  { id: "settings", label: "Configurações" },
-  { id: "versoes", label: "Versões" },
-];
+function montaTabs(logado) {
+  return [
+    { id: "busca", label: "Busca" },
+    { id: "monitors", label: "Monitores" },
+    ...(logado ? [{ id: "alertas", label: "Alertas" }] : []),
+    { id: "historico", label: "Histórico" },
+    { id: "settings", label: "Configurações" },
+    { id: "versoes", label: "Versões" },
+  ];
+}
 
 export default function App() {
   const [tab, setTab] = useState("busca");
@@ -24,6 +29,8 @@ export default function App() {
   const [abrir, setAbrir] = useState(null); // {criterios, filtro, nonce} → reabrir busca
   const [user, setUserState] = useState(getUser());
   const [showLogin, setShowLogin] = useState(false);
+  const [showConta, setShowConta] = useState(false);
+  const TABS = montaTabs(!!user);
 
   // reage a login/logout em qualquer parte do app
   useEffect(() => {
@@ -82,10 +89,10 @@ export default function App() {
           </div>
           <div className="flex items-center gap-2">
             {user ? (
-              <div className="flex items-center gap-2 text-sm">
-                <span className="text-slate-300 hidden sm:inline" title={user.email}>👤 {user.nome || user.email}</span>
-                <button onClick={() => sair()} className="text-slate-400 hover:text-white text-xs px-2 py-1">Sair</button>
-              </div>
+              <button onClick={() => setShowConta(true)} title="Minha conta"
+                className="flex items-center gap-2 text-sm text-slate-200 hover:text-white border border-slate-600 rounded-lg px-3 py-2">
+                <span>👤</span><span className="hidden sm:inline">{user.nome || user.email}</span>
+              </button>
             ) : (
               <button onClick={() => setShowLogin(true)}
                 className="text-slate-200 hover:text-white text-sm border border-slate-600 rounded-lg px-3 py-2">
@@ -127,12 +134,14 @@ export default function App() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         {tab === "busca" && <Busca abrir={abrir} />}
         {tab === "monitors" && <Monitors onPedirLogin={() => setShowLogin(true)} />}
+        {tab === "alertas" && <Alertas onPedirLogin={() => setShowLogin(true)} />}
         {tab === "historico" && <Historico onAbrirBusca={abrirBusca} onPedirLogin={() => setShowLogin(true)} />}
         {tab === "settings" && <Settings />}
         {tab === "versoes" && <Versoes />}
       </main>
 
       {showLogin && <Login onClose={() => setShowLogin(false)} onOk={() => setShowLogin(false)} />}
+      {showConta && <MinhaConta onClose={() => setShowConta(false)} />}
     </div>
   );
 }

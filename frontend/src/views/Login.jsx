@@ -7,12 +7,18 @@ export function Login({ onClose, onOk }) {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [senha2, setSenha2] = useState("");
   const [erro, setErro] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function submit(e) {
     e.preventDefault();
-    setErro(""); setLoading(true);
+    setErro("");
+    if (modo === "cadastro") {
+      if (senha.length < 6) { setErro("A senha precisa de ao menos 6 caracteres."); return; }
+      if (senha !== senha2) { setErro("As senhas não coincidem."); return; }
+    }
+    setLoading(true);
     try {
       const u = modo === "login"
         ? await entrar(email, senha)
@@ -42,6 +48,11 @@ export function Login({ onClose, onOk }) {
             onChange={(e) => setEmail(e.target.value)} required />
           <input className="input w-full" type="password" placeholder="Senha (mín. 6)" value={senha}
             onChange={(e) => setSenha(e.target.value)} required minLength={6} />
+          {modo === "cadastro" && (
+            <input className={`input w-full ${senha2 && senha !== senha2 ? "border-rose-400" : ""}`}
+              type="password" placeholder="Confirmar senha" value={senha2}
+              onChange={(e) => setSenha2(e.target.value)} required />
+          )}
 
           {erro && <p className="text-sm text-rose-600">{erro}</p>}
 
@@ -51,7 +62,7 @@ export function Login({ onClose, onOk }) {
           </button>
         </form>
 
-        <button onClick={() => { setErro(""); setModo(modo === "login" ? "cadastro" : "login"); }}
+        <button onClick={() => { setErro(""); setSenha2(""); setModo(modo === "login" ? "cadastro" : "login"); }}
           className="mt-3 text-xs text-slate-500 hover:text-slate-700 w-full text-center">
           {modo === "login" ? "Não tem conta? Criar agora" : "Já tem conta? Entrar"}
         </button>

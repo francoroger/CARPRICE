@@ -5,7 +5,16 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import usuario_atual
-from app.models import SavedListing, SearchHistory, User
+from app.models import (
+    ListingScore,
+    Monitor,
+    MonitorMatch,
+    Portal,
+    SavedListing,
+    SearchHistory,
+    User,
+    VehicleListing,
+)
 from app.schemas import (
     SavedListingCreate,
     SavedListingRead,
@@ -91,3 +100,33 @@ def remover_historico(hid: int, user: User = Depends(usuario_atual),
 def limpar_historico(user: User = Depends(usuario_atual), db: Session = Depends(get_db)):
     db.execute(delete(SearchHistory).where(SearchHistory.user_id == user.id))
     db.commit()
+
+
+# --- alertas: carros que os monitores DO usuário encontraram (acima do threshold) --- #
+@router.get("/alerts")
+def alertas(user: User = Depends(usuario_atual), db: Session = Depends(get_db)):
+    rows = db.execute(
+        select(MonitorMatch, VehicleListing, ListingScore, Monitor, Portal.slug)
+        .join(VehicleListing, VehicleListing.id == MonitorMatch.listing_id)
+        .join(Monitor, Monitor.id == MonitorMatch.monitor_id)
+        .join(Portal, Portal.id == VehicleListing.portal_id)
+        .outerjoin(ListingScore, ListingScore.listing_id == VehicleListing.id)
+        .where(Monitor.user_id == user.id, VehicleListing.ativo.is_(True))
+        .order_by(MonitorMatch.criado_em.desc())
+        .limit(60)
+    ).all()
+    return [
+        {
+            "id": match.id,
+            "monitor": mon.nome,
+            "quando": match.criado_em,
+            "url": l.url, "versao": l.versao, "titulo": l.titulo,
+            "marca": l.marca, "modelo": l.modelo, "ano_modelo": l.ano_modelo,
+            "preco": l.preco, "km": l.km, "cidade": l.cidade, "uf": l.uf,
+            "foto_url": l.foto_url, "portal_slug": slug,
+            "preco_ref": s.preco_ref if s else None,
+            "desconto": (s.desconto if s else None) or match.desconto,
+            "origem_score": s.origem_score if s else None,
+        }
+        for (match, l, s, mon, slug) in rows
+    ]

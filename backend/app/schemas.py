@@ -27,6 +27,13 @@ class UserRead(BaseModel):
     email: str
 
 
+class UpdateMeRequest(BaseModel):
+    nome: str | None = None
+    email: EmailStr | None = None
+    senha_atual: str | None = None
+    senha_nova: str | None = None
+
+
 class AuthResponse(BaseModel):
     token: str
     user: UserRead

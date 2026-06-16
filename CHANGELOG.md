@@ -9,6 +9,18 @@ A cada alteração: nova versão + entrada aqui + documentação atualizada + pu
 ## [Não lançado]
 - (próximas alterações entram aqui)
 
+## [0.13.0] - 2026-06-16
+### Added
+- **Aba "Alertas"** (logado): mostra os carros que **seus monitores** encontraram
+  abaixo do mercado (acima do seu limite de desconto). É onde os alertas aparecem
+  dentro do app — sem depender de e-mail. Endpoint `GET /api/account/alerts`.
+- **Confirmar senha no cadastro**: campo "Confirmar senha" valida que as duas batem.
+- **Página "Minha conta"**: clicar no nome (topo) abre um painel para editar nome e
+  e-mail e **trocar a senha** (exige a senha atual). Endpoint `PATCH /api/auth/me`.
+### Notes
+- O **e-mail de alerta já vai para o e-mail da conta** — falta apenas configurar o
+  SMTP no Render para o envio sair de fato (`SMTP_HOST`/`SMTP_USER`/`SMTP_PASSWORD`).
+
 ## [0.12.0] - 2026-05-30
 ### Added
 - **Login real (contas de usuário)**: cadastro/entrada por e-mail+senha com token JWT
