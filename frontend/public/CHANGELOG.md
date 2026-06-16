@@ -9,6 +9,17 @@ A cada alteração: nova versão + entrada aqui + documentação atualizada + pu
 ## [Não lançado]
 - (próximas alterações entram aqui)
 
+## [0.11.1] - 2026-05-30
+### Added
+- **Banco permanente (Aiven Postgres)**: backend pronto para usar o Postgres
+  `pricecar` da Aiven via `DATABASE_URL` — monitores e dados deixam de resetar a
+  cada deploy. `database.py` normaliza `postgres://`→`postgresql://`, força
+  `sslmode=require` e usa pool com `pool_recycle` (estável em conexão ociosa).
+  `DATABASE_URL` declarado no `render.yaml` como segredo (`sync:false`).
+- **Keep-warm (sempre acordado)**: workflow `keep-warm` (GitHub Actions, ping a
+  cada 10 min) mantém o backend do Render sem hibernar — fim do cold-start. Como o
+  servidor fica on, `SCHEDULER_ENABLED` volta a `true` (varredura agendada roda).
+
 ## [0.11.0] - 2026-05-30
 ### Added
 - **Busca não se perde ao atualizar a página**: filtros, resultados, ordenação e

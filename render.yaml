@@ -16,10 +16,11 @@ services:
       - key: PYTHONPATH
         value: "."
       - key: SCHEDULER_ENABLED
-        value: "false"          # free tier hiberna; busca é on-demand
+        value: "true"           # mantido on via keep-warm → varredura agendada roda
       - key: CORS_ORIGINS
         value: "*"
-      # Banco: SQLite por padrão (efêmero no free — reseta a cada deploy).
-      # Para persistir monitores, crie um Postgres no Render e cole a URL aqui:
-      # - key: DATABASE_URL
-      #   value: postgresql+psycopg2://...
+      # Banco PERMANENTE (Aiven Postgres "pricecar"). O VALOR (com senha) é definido
+      # no painel do Render (Environment) — sync:false mantém o segredo fora do git.
+      # Formato: postgresql://avnadmin:SENHA@HOST:PORTA/pricecar?sslmode=require
+      - key: DATABASE_URL
+        sync: false
