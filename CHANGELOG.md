@@ -9,6 +9,26 @@ A cada alteração: nova versão + entrada aqui + documentação atualizada + pu
 ## [Não lançado]
 - (próximas alterações entram aqui)
 
+## [0.11.0] - 2026-05-30
+### Added
+- **Busca não se perde ao atualizar a página**: filtros, resultados, ordenação e
+  filtro de portal ficam guardados no navegador (localStorage) e voltam no F5.
+- **Aba "Histórico"**: suas buscas recentes (re-executáveis com um clique em
+  "Refazer", que restaura os filtros) e os **carros salvos**. Tudo no navegador —
+  sobrevive a refresh e a redeploys do backend, sem precisar de login.
+- **Salvar carro (⭐)** em cada card da Busca; os salvos aparecem no Histórico.
+### Changed
+- **Cold-start mais limpo**: enquanto o servidor acorda, o seletor de Marca mostra
+  apenas "Carregando…" (sem o aviso alarmante de antes).
+### Removed
+- **Aba Ranking** e todo o código atrelado (view, `api.listings`, endpoint
+  `/api/listings`) — simplifica o app; o custo-benefício já aparece nos cards.
+### Known
+- Os **monitores** (varredura agendada) seguem no banco do backend, que é efêmero
+  no Render free (reseta a cada deploy). Buscas e carros salvos agora persistem no
+  navegador; persistência server-side dos monitores entre deploys exige um banco
+  permanente (próximo passo).
+
 ## [0.10.9] - 2026-05-30
 ### Fixed
 - **Página "Versões" não carregava em produção**: o `CHANGELOG.md`/`VERSION` não

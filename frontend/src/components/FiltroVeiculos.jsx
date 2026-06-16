@@ -127,14 +127,9 @@ export function FiltroVeiculos({ value: f, onChange: setF }) {
 
   return (
     <div className="space-y-3">
-      <Select label="Marca" value={f.marcaCodigo} onChange={onMarca}
+      <Select label="Marca" value={f.marcaCodigo} onChange={onMarca} disabled={acordando}
         options={marcas.map((m) => ({ value: m.codigo, label: m.nome }))}
-        placeholder={acordando ? "⏳ acordando o servidor… (até 1 min)" : "Todas as marcas"} />
-      {acordando && (
-        <p className="text-xs text-amber-600">
-          O servidor gratuito hiberna quando fica parado — as marcas carregam sozinhas em instantes.
-        </p>
-      )}
+        placeholder={acordando ? "Carregando…" : "Todas as marcas"} />
       <Select label="Modelo" value={f.modelo} onChange={onModelo} disabled={!f.marcaCodigo}
         options={modelos.map((m) => ({ value: m, label: m }))} placeholder="Todos os modelos" />
 

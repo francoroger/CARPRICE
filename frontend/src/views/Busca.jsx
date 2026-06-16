@@ -1,25 +1,43 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import { EMPTY_FILTRO, FiltroVeiculos, criteriosFromFiltro } from "../components/FiltroVeiculos.jsx";
 import { classifica, origemLabel, pctScore } from "../score.js";
+import { salvarBusca, lerBusca, registrarBusca, estaSalvo, alternarSalvo } from "../storage.js";
 
 const brl = (v) => (v == null ? "—" : "R$ " + v.toLocaleString("pt-BR"));
 
-export function Busca() {
-  const [f, setF] = useState(EMPTY_FILTRO);
-  const [loading, setLoading] = useState(false);
-  const [res, setRes] = useState(null);
-  const [ordem, setOrdem] = useState("preco_asc");
-  const [portalSel, setPortalSel] = useState(""); // "" = todos os portais
+// critérios (da API) → filtro (do formulário). marcaCodigo não vem nos critérios,
+// então o cascata não recarrega os dropdowns, mas a BUSCA usa os campos corretos.
+function filtroDeCriterios(c = {}) {
+  return { ...EMPTY_FILTRO, ...c, ano_min: c.ano_min ?? "", ano_max: c.ano_max ?? "" };
+}
 
-  // contagem por portal nos RESULTADOS (para o filtro de portal)
+export function Busca({ abrir }) {
+  // restaura o estado da última busca (sobrevive ao refresh)
+  const inicial = lerBusca() || {};
+  const [f, setF] = useState(inicial.f || EMPTY_FILTRO);
+  const [loading, setLoading] = useState(false);
+  const [res, setRes] = useState(inicial.res || null);
+  const [ordem, setOrdem] = useState(inicial.ordem || "preco_asc");
+  const [portalSel, setPortalSel] = useState(inicial.portalSel || "");
+
+  // persiste o estado a cada mudança
+  useEffect(() => { salvarBusca({ f, res, ordem, portalSel }); }, [f, res, ordem, portalSel]);
+
+  // "Refazer" do Histórico → restaura o filtro e busca (abrir.nonce muda a cada clique)
+  useEffect(() => {
+    if (!abrir?.criterios) return;
+    setF(abrir.filtro || filtroDeCriterios(abrir.criterios));
+    executar(abrir.criterios, false, abrir.filtro);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [abrir?.nonce]);
+
   const porPortal = useMemo(() => {
     const c = {};
     for (const l of res?.resultados || []) c[l.portal_slug] = (c[l.portal_slug] || 0) + 1;
     return c;
   }, [res]);
 
-  // aplica filtro de portal + ordenação (cliente, instantâneo)
   const lista = useMemo(() => {
     let r = [...(res?.resultados || [])];
     if (portalSel) r = r.filter((l) => l.portal_slug === portalSel);
@@ -29,14 +47,19 @@ export function Busca() {
     return r;
   }, [res, ordem, portalSel]);
 
-  async function buscar(e, forcar = false) {
-    if (e && e.preventDefault) e.preventDefault();
+  async function executar(criterios, forcar = false, filtro = null) {
     setLoading(true); setRes(null); setPortalSel("");
     try {
-      setRes(await api.search({ ...criteriosFromFiltro(f), forcar }));
+      const r = await api.search({ ...criterios, forcar });
+      setRes(r);
+      registrarBusca(criterios, r.total ?? r.resultados?.length ?? 0, filtro);
     } catch (err) {
       setRes({ erro: String(err), resultados: [], portais: [] });
     } finally { setLoading(false); }
+  }
+  function buscar(e, forcar = false) {
+    if (e && e.preventDefault) e.preventDefault();
+    executar(criteriosFromFiltro(f), forcar, f);
   }
 
   return (
@@ -73,23 +96,24 @@ export function Busca() {
               </select>
             </div>
 
-            {/* FILTRO DE PORTAL */}
-            <div className="flex flex-wrap gap-1.5 mb-4">
-              <Chip ativo={portalSel === ""} onClick={() => setPortalSel("")}
-                label={`Todos (${res.resultados.length})`} />
-              {Object.entries(porPortal).sort((a, b) => b[1] - a[1]).map(([p, n]) => (
-                <Chip key={p} ativo={portalSel === p} onClick={() => setPortalSel(p)} label={`${p} (${n})`} />
-              ))}
-            </div>
+            {res.resultados?.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-4">
+                <Chip ativo={portalSel === ""} onClick={() => setPortalSel("")}
+                  label={`Todos (${res.resultados.length})`} />
+                {Object.entries(porPortal).sort((a, b) => b[1] - a[1]).map(([p, n]) => (
+                  <Chip key={p} ativo={portalSel === p} onClick={() => setPortalSel(p)} label={`${p} (${n})`} />
+                ))}
+              </div>
+            )}
 
             {res.erro && <p className="text-rose-600 text-sm">{res.erro}</p>}
-            {lista.length === 0 && (
+            {lista.length === 0 && !res.erro && (
               <div className="bg-white rounded-xl shadow-sm p-8 text-center text-slate-400">
                 Nenhum veículo com esses filtros.
               </div>
             )}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-              {lista.map((l) => <CarCard key={l.id} l={l} />)}
+              {lista.map((l) => <CarCard key={l.id || l.url} l={l} />)}
             </div>
           </>
         )}
@@ -115,8 +139,17 @@ function Chip({ ativo, onClick, label }) {
   );
 }
 
-export function CarCard({ l }) {
+// onSalvarMudou: callback opcional (ex.: na página Histórico, p/ remover ao clicar)
+export function CarCard({ l, onSalvarMudou }) {
   const cls = classifica(l.desconto);
+  const [salvo, setSalvo] = useState(() => estaSalvo(l.url));
+  function toggleSalvar(e) {
+    e.preventDefault(); e.stopPropagation();
+    const agora = alternarSalvo(l);
+    setSalvo(agora);
+    window.dispatchEvent(new Event("salvos-mudou"));
+    onSalvarMudou?.(agora);
+  }
   return (
     <a href={l.url} target="_blank" rel="noreferrer"
       className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow flex flex-col">
@@ -132,7 +165,11 @@ export function CarCard({ l }) {
             {cls.icone} {cls.rotulo}
           </span>
         )}
-        <span className="absolute top-2 right-2 text-[10px] uppercase tracking-wide bg-black/55 text-white px-2 py-0.5 rounded">
+        <button onClick={toggleSalvar} title={salvo ? "Remover dos salvos" : "Salvar carro"}
+          className={`absolute top-2 right-2 text-base leading-none rounded-full w-7 h-7 flex items-center justify-center ${salvo ? "bg-amber-400 text-white" : "bg-black/55 text-white hover:bg-black/75"}`}>
+          {salvo ? "★" : "☆"}
+        </button>
+        <span className="absolute bottom-2 right-2 text-[10px] uppercase tracking-wide bg-black/55 text-white px-2 py-0.5 rounded">
           {l.portal_slug}
         </span>
       </div>

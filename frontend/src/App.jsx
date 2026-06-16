@@ -1,23 +1,29 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { api } from "./api";
 import { Busca } from "./views/Busca.jsx";
 import { Monitors } from "./views/Monitors.jsx";
-import { Ranking } from "./views/Ranking.jsx";
 import { Settings } from "./views/Settings.jsx";
 import { Historico } from "./views/Historico.jsx";
+import { Versoes } from "./views/Versoes.jsx";
 
 const TABS = [
   { id: "busca", label: "Busca" },
-  { id: "ranking", label: "Ranking" },
   { id: "monitors", label: "Monitores" },
+  { id: "historico", label: "Histórico" },
   { id: "settings", label: "Configurações" },
-  { id: "historico", label: "Versões" },
+  { id: "versoes", label: "Versões" },
 ];
 
 export default function App() {
   const [tab, setTab] = useState("busca");
   const [running, setRunning] = useState(false);
   const [msg, setMsg] = useState("");
+  const [abrir, setAbrir] = useState(null); // {criterios, nonce} → reabrir busca do Histórico
+
+  function abrirBusca(entry) {
+    setAbrir({ criterios: entry.criterios, filtro: entry.filtro, nonce: Date.now() });
+    setTab("busca");
+  }
 
   // Varredura com PROGRESSO REAL: dispara e faz polling do status até concluir.
   async function runNow() {
@@ -40,7 +46,7 @@ export default function App() {
         else if (s.resumo && s.resumo.monitores === 0)
           setMsg("Nenhum monitor cadastrado — a varredura roda os MONITORES. Crie um na aba Monitores (ou use a Busca direto).");
         else if (s.resumo)
-          setMsg(`✓ Varredura concluída: ${s.resumo.monitores} monitor(es), ${s.resumo.resultados} resultados, ${s.resumo.notificados} alerta(s). Veja o Ranking.`);
+          setMsg(`✓ Varredura concluída: ${s.resumo.monitores} monitor(es), ${s.resumo.resultados} resultados, ${s.resumo.notificados} alerta(s).`);
         else setMsg("✓ Varredura concluída.");
         window.dispatchEvent(new Event("varredura-concluida"));
         break;
@@ -92,11 +98,11 @@ export default function App() {
       )}
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-        {tab === "busca" && <Busca />}
-        {tab === "ranking" && <Ranking />}
+        {tab === "busca" && <Busca abrir={abrir} />}
         {tab === "monitors" && <Monitors />}
+        {tab === "historico" && <Historico onAbrirBusca={abrirBusca} />}
         {tab === "settings" && <Settings />}
-        {tab === "historico" && <Historico />}
+        {tab === "versoes" && <Versoes />}
       </main>
     </div>
   );

@@ -21,7 +21,6 @@ export const api = {
 
   search: (criterios) => req("/api/search", { method: "POST", body: JSON.stringify(criterios) }),
 
-  listings: (params = "") => req(`/api/listings${params}`),
   scrapeLogs: () => req("/api/scrape-logs"),
   runScrape: () => req("/api/scrape/run", { method: "POST" }),
   scrapeStatus: () => req("/api/scrape/status"),

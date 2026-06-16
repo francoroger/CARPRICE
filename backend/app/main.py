@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import fipe, listings, localidades, monitors, ops, search, settings_api
+from app.api import fipe, localidades, monitors, ops, search, settings_api
 from app.config import settings
 from app.seed import init_db
 from app.services.scheduler import shutdown_scheduler, start_scheduler
@@ -34,7 +34,6 @@ app.add_middleware(
 )
 
 app.include_router(monitors.router)
-app.include_router(listings.router)
 app.include_router(settings_api.router)
 app.include_router(ops.router)
 app.include_router(fipe.router)
