@@ -9,6 +9,15 @@ A cada alteração: nova versão + entrada aqui + documentação atualizada + pu
 ## [Não lançado]
 - (próximas alterações entram aqui)
 
+## [0.13.2] - 2026-06-16
+### Fixed
+- **Modelos "letra + número" colapsavam** (Volvo mostrava só "XC" no lugar de
+  XC40/XC60/XC90; idem S40/S60/S90, V40/V60). A FIPE escreve esses com espaço
+  ("XC 60"), e a extração de família parava no 1º dígito tratando o número como
+  cilindrada. Agora junta o número de modelo (2-3 díg.) ao nome: "XC 60" → XC60,
+  "S 60" → S60, "C 180" → C180 — preservando cilindrada de 4 díg. ("Gol 1000" → GOL)
+  e os modelos compostos (T-Cross, Grand Siena, Corolla Cross).
+
 ## [0.13.1] - 2026-06-16
 ### Added
 - **Notificações de alerta**: badge vermelho com a contagem de novos alertas na aba

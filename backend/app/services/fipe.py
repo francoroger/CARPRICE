@@ -315,6 +315,14 @@ def familia_do_label(label: str) -> str:
       'HB20 1.0 ...'              → 'HB20' (1º token já tem dígito → fallback)
     """
     toks = label.split()
+    if not toks:
+        return label
+    # MODELO "letra(s) + número" escrito com ESPAÇO (Volvo XC 60, S 60; Merc. C 180):
+    # o número faz parte do nome do modelo (não é cilindrada) → junta: XC60, S60.
+    # Sem isso, XC40/XC60/XC90 colapsavam todos em "XC".
+    if (len(toks) >= 2 and toks[0].isalpha() and 1 <= len(toks[0]) <= 3
+            and re.fullmatch(r"\d{2,3}", toks[1])):  # 2-3 díg = nº de modelo (60/90/180); 4 díg = cc
+        return (toks[0] + toks[1]).upper()
     nome = [t for t in _ate_digito(toks)][:2]  # no máx 2 palavras (colapsa trims)
     return " ".join(nome).upper() if nome else (toks[0].upper() if toks else label)
 
