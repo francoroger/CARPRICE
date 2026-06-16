@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     # Banco
     database_url: str = "sqlite:///./carprice.db"
 
+    # Auth (JWT). Em produção, definir JWT_SECRET no ambiente do Render.
+    jwt_secret: str = "dev-secret-trocar-em-producao"
+    jwt_expira_dias: int = 30
+
     # Agendador
     scrape_default_interval_min: int = 60
     scheduler_enabled: bool = True

@@ -6,6 +6,62 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 
 
+from pydantic import EmailStr
+
+
+class RegisterRequest(BaseModel):
+    nome: str
+    email: EmailStr
+    senha: str
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    senha: str
+
+
+class UserRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    nome: str
+    email: str
+
+
+class AuthResponse(BaseModel):
+    token: str
+    user: UserRead
+
+
+class SavedListingCreate(BaseModel):
+    url: str
+    dados: dict = {}
+
+
+class SavedListingRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    url: str
+    dados_json: dict
+    salvo_em: datetime
+
+
+class SearchHistoryCreate(BaseModel):
+    criterios: dict = {}
+    filtro: dict = {}
+    label: str = ""
+    total: int = 0
+
+
+class SearchHistoryRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    criterios_json: dict
+    filtro_json: dict
+    label: str
+    total: int
+    criado_em: datetime
+
+
 class MonitorBase(BaseModel):
     nome: str
     criterios_json: dict = {}

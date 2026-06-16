@@ -61,6 +61,33 @@ class User(Base):
     monitors: Mapped[list[Monitor]] = relationship(back_populates="user")
 
 
+class SavedListing(Base):
+    """Carro salvo (favorito) por usuário — snapshot do card."""
+
+    __tablename__ = "saved_listings"
+    __table_args__ = (UniqueConstraint("user_id", "url", name="uq_saved_user_url"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    url: Mapped[str] = mapped_column(Text)
+    dados_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    salvo_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class SearchHistory(Base):
+    """Histórico de buscas por usuário (re-executável)."""
+
+    __tablename__ = "search_history"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    criterios_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    filtro_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    label: Mapped[str] = mapped_column(String(200), default="")
+    total: Mapped[int] = mapped_column(Integer, default=0)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 class Portal(Base):
     __tablename__ = "portals"
 

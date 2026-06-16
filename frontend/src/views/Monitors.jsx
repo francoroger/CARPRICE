@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
+import { isLogged } from "../auth.js";
 import { EMPTY_FILTRO, FiltroVeiculos, Inp, criteriosFromFiltro } from "../components/FiltroVeiculos.jsx";
 import { CarCard } from "./Busca.jsx";
 
-export function Monitors() {
+export function Monitors({ onPedirLogin }) {
   const [monitors, setMonitors] = useState([]);
   const [filtro, setFiltro] = useState(EMPTY_FILTRO);
   const [nome, setNome] = useState("");
@@ -12,13 +13,18 @@ export function Monitors() {
   // resultados do monitor aberto: { id, nome, lista, loading }
   const [res, setRes] = useState(null);
 
+  const logado = isLogged();
   async function load() { setMonitors(await api.listMonitors()); }
   useEffect(() => {
     load();
-    // varredura terminou → se há resultados abertos, atualiza
+    const recar = () => load();  // recarrega ao logar/deslogar (escopo muda)
     const recarrega = () => setRes((r) => { if (r) verResultados({ id: r.id, nome: r.nome, criterios_json: r.criterios }); return r; });
+    window.addEventListener("auth-mudou", recar);
     window.addEventListener("varredura-concluida", recarrega);
-    return () => window.removeEventListener("varredura-concluida", recarrega);
+    return () => {
+      window.removeEventListener("auth-mudou", recar);
+      window.removeEventListener("varredura-concluida", recarrega);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -62,6 +68,15 @@ export function Monitors() {
   }
 
   return (
+    <div className="space-y-4">
+      {!logado && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-lg px-4 py-2 flex items-center justify-between gap-3">
+          <span>Entre numa conta para que seus monitores fiquem salvos e rodem a varredura automática.</span>
+          <button onClick={onPedirLogin} className="text-xs font-medium bg-amber-500 text-white rounded px-3 py-1 hover:bg-amber-400 shrink-0">
+            Entrar / criar conta
+          </button>
+        </div>
+      )}
     <div className="grid lg:grid-cols-3 gap-6">
       <form onSubmit={create} className="lg:col-span-1 bg-white rounded-xl shadow-sm p-4 space-y-3 h-fit">
         <h2 className="font-semibold text-red-600">Novo monitor</h2>
@@ -137,6 +152,7 @@ export function Monitors() {
           </div>
         )}
       </div>
+    </div>
     </div>
   );
 }

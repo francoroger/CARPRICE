@@ -9,6 +9,18 @@ A cada alteração: nova versão + entrada aqui + documentação atualizada + pu
 ## [Não lançado]
 - (próximas alterações entram aqui)
 
+## [0.12.0] - 2026-05-30
+### Added
+- **Login real (contas de usuário)**: cadastro/entrada por e-mail+senha com token JWT
+  (senha com hash pbkdf2). Botão "Entrar" no topo; ao logar, o nome aparece e há "Sair".
+  - **Monitores** passam a ser **por usuário** (cada um vê e roda os seus).
+  - **Carros salvos** e **histórico de buscas** ficam guardados **na conta** (servidor),
+    sincronizando entre dispositivos. Sem login, seguem no navegador (modo convidado).
+  - Backend: tabelas `saved_listings` e `search_history`; endpoints `/api/auth/*`
+    (register/login/me) e `/api/account/*` (saved/history); `JWT_SECRET` no Render.
+  - Validado contra o Postgres Aiven e no navegador (criar conta → salvar → sair →
+    entrar → dados voltam do servidor).
+
 ## [0.11.1] - 2026-05-30
 ### Added
 - **Banco permanente (Aiven Postgres)**: backend pronto para usar o Postgres

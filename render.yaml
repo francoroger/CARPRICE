@@ -24,3 +24,6 @@ services:
       # Formato: postgresql://avnadmin:SENHA@HOST:PORTA/pricecar?sslmode=require
       - key: DATABASE_URL
         sync: false
+      # Segredo do JWT (login). Defina um valor aleatório no painel do Render.
+      - key: JWT_SECRET
+        sync: false

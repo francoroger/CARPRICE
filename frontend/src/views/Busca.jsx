@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import { EMPTY_FILTRO, FiltroVeiculos, criteriosFromFiltro } from "../components/FiltroVeiculos.jsx";
 import { classifica, origemLabel, pctScore } from "../score.js";
-import { salvarBusca, lerBusca, registrarBusca, estaSalvo, alternarSalvo } from "../storage.js";
+import { salvarBusca, lerBusca } from "../storage.js";
+import { registrarBusca, estaSalvo, alternarSalvo } from "../userdata.js";
 
 const brl = (v) => (v == null ? "—" : "R$ " + v.toLocaleString("pt-BR"));
 
@@ -143,11 +144,17 @@ function Chip({ ativo, onClick, label }) {
 export function CarCard({ l, onSalvarMudou }) {
   const cls = classifica(l.desconto);
   const [salvo, setSalvo] = useState(() => estaSalvo(l.url));
-  function toggleSalvar(e) {
+  // reflete mudanças no conjunto de salvos (ex.: após login carregar do servidor)
+  useEffect(() => {
+    const sync = () => setSalvo(estaSalvo(l.url));
+    window.addEventListener("salvos-mudou", sync);
+    window.addEventListener("auth-mudou", sync);
+    return () => { window.removeEventListener("salvos-mudou", sync); window.removeEventListener("auth-mudou", sync); };
+  }, [l.url]);
+  async function toggleSalvar(e) {
     e.preventDefault(); e.stopPropagation();
-    const agora = alternarSalvo(l);
+    const agora = await alternarSalvo(l);
     setSalvo(agora);
-    window.dispatchEvent(new Event("salvos-mudou"));
     onSalvarMudou?.(agora);
   }
   return (

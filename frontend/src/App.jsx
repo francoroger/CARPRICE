@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "./api";
+import { getUser, isLogged, sair, revalidar } from "./auth.js";
+import { carregarSalvos } from "./userdata.js";
 import { Busca } from "./views/Busca.jsx";
 import { Monitors } from "./views/Monitors.jsx";
 import { Settings } from "./views/Settings.jsx";
 import { Historico } from "./views/Historico.jsx";
 import { Versoes } from "./views/Versoes.jsx";
+import { Login } from "./views/Login.jsx";
 
 const TABS = [
   { id: "busca", label: "Busca" },
@@ -18,7 +21,18 @@ export default function App() {
   const [tab, setTab] = useState("busca");
   const [running, setRunning] = useState(false);
   const [msg, setMsg] = useState("");
-  const [abrir, setAbrir] = useState(null); // {criterios, nonce} → reabrir busca do Histórico
+  const [abrir, setAbrir] = useState(null); // {criterios, filtro, nonce} → reabrir busca
+  const [user, setUserState] = useState(getUser());
+  const [showLogin, setShowLogin] = useState(false);
+
+  // reage a login/logout em qualquer parte do app
+  useEffect(() => {
+    const onAuth = () => { setUserState(getUser()); carregarSalvos(); };
+    window.addEventListener("auth-mudou", onAuth);
+    revalidar();            // valida token salvo no boot
+    if (isLogged()) carregarSalvos();
+    return () => window.removeEventListener("auth-mudou", onAuth);
+  }, []);
 
   function abrirBusca(entry) {
     setAbrir({ criterios: entry.criterios, filtro: entry.filtro, nonce: Date.now() });
@@ -66,13 +80,26 @@ export default function App() {
             <h1 className="text-lg sm:text-xl font-bold">🚗 CarPrice</h1>
             <p className="text-slate-400 text-xs sm:text-sm">Monitor de oportunidades em carros usados</p>
           </div>
-          <button
-            onClick={runNow}
-            disabled={running}
-            className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 px-4 py-2 rounded-lg font-medium text-sm"
-          >
-            {running ? "⏳ Varrendo…" : "Varrer agora"}
-          </button>
+          <div className="flex items-center gap-2">
+            {user ? (
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-slate-300 hidden sm:inline" title={user.email}>👤 {user.nome || user.email}</span>
+                <button onClick={() => sair()} className="text-slate-400 hover:text-white text-xs px-2 py-1">Sair</button>
+              </div>
+            ) : (
+              <button onClick={() => setShowLogin(true)}
+                className="text-slate-200 hover:text-white text-sm border border-slate-600 rounded-lg px-3 py-2">
+                Entrar
+              </button>
+            )}
+            <button
+              onClick={runNow}
+              disabled={running}
+              className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 px-4 py-2 rounded-lg font-medium text-sm"
+            >
+              {running ? "⏳ Varrendo…" : "Varrer agora"}
+            </button>
+          </div>
         </div>
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 flex gap-1 overflow-x-auto">
           {TABS.map((t) => (
@@ -99,11 +126,13 @@ export default function App() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         {tab === "busca" && <Busca abrir={abrir} />}
-        {tab === "monitors" && <Monitors />}
-        {tab === "historico" && <Historico onAbrirBusca={abrirBusca} />}
+        {tab === "monitors" && <Monitors onPedirLogin={() => setShowLogin(true)} />}
+        {tab === "historico" && <Historico onAbrirBusca={abrirBusca} onPedirLogin={() => setShowLogin(true)} />}
         {tab === "settings" && <Settings />}
         {tab === "versoes" && <Versoes />}
       </main>
+
+      {showLogin && <Login onClose={() => setShowLogin(false)} onOk={() => setShowLogin(false)} />}
     </div>
   );
 }
