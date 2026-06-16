@@ -9,6 +9,16 @@ A cada alteração: nova versão + entrada aqui + documentação atualizada + pu
 ## [Não lançado]
 - (próximas alterações entram aqui)
 
+## [0.13.1] - 2026-06-16
+### Added
+- **Notificações de alerta**: badge vermelho com a contagem de novos alertas na aba
+  "Alertas" + **notificação do navegador** (desktop/celular) quando um monitor acha um
+  carro novo — botão "Ativar notificações" pede a permissão. O app verifica a cada
+  ~60s e ao concluir uma varredura; abrir a aba zera o badge.
+### Fixed
+- **`/api/account/alerts` dava 500** (lia `titulo`, campo inexistente em VehicleListing).
+  Corrigido — a aba Alertas carrega normalmente.
+
 ## [0.13.0] - 2026-06-16
 ### Added
 - **Aba "Alertas"** (logado): mostra os carros que **seus monitores** encontraram

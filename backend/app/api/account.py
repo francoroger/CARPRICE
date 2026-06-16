@@ -120,7 +120,7 @@ def alertas(user: User = Depends(usuario_atual), db: Session = Depends(get_db)):
             "id": match.id,
             "monitor": mon.nome,
             "quando": match.criado_em,
-            "url": l.url, "versao": l.versao, "titulo": l.titulo,
+            "url": l.url, "versao": l.versao,
             "marca": l.marca, "modelo": l.modelo, "ano_modelo": l.ano_modelo,
             "preco": l.preco, "km": l.km, "cidade": l.cidade, "uf": l.uf,
             "foto_url": l.foto_url, "portal_slug": slug,

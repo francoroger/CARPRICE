@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "./api";
 import { getUser, isLogged, sair, revalidar } from "./auth.js";
 import { carregarSalvos } from "./userdata.js";
+import { getSeen, setSeen, notificar } from "./notificacoes.js";
 import { Busca } from "./views/Busca.jsx";
 import { Monitors } from "./views/Monitors.jsx";
 import { Settings } from "./views/Settings.jsx";
@@ -30,6 +31,7 @@ export default function App() {
   const [user, setUserState] = useState(getUser());
   const [showLogin, setShowLogin] = useState(false);
   const [showConta, setShowConta] = useState(false);
+  const [novosAlertas, setNovosAlertas] = useState(0);
   const TABS = montaTabs(!!user);
 
   // reage a login/logout em qualquer parte do app
@@ -40,6 +42,32 @@ export default function App() {
     if (isLogged()) carregarSalvos();
     return () => window.removeEventListener("auth-mudou", onAuth);
   }, []);
+
+  // Polling de alertas: badge "novos" + notificação no navegador quando chega um novo.
+  useEffect(() => {
+    if (!user) { setNovosAlertas(0); return; }
+    let prev = -1; // -1 = 1ª checagem (só calibra, não notifica)
+    async function checa() {
+      try {
+        const alerts = await api.alerts();
+        const seen = getSeen();
+        const novos = alerts.filter((a) => a.id > seen);
+        setNovosAlertas(novos.length);
+        if (prev >= 0 && novos.length > prev && novos[0]) {
+          notificar("🚗 CarPrice — nova oportunidade",
+            `${novos[0].versao || novos[0].titulo || "Carro"} · ${novos[0].monitor}`);
+        }
+        prev = novos.length;
+      } catch { /* offline/redeploy */ }
+    }
+    checa();
+    const t = setInterval(checa, 60000);
+    const onScan = () => checa();
+    window.addEventListener("varredura-concluida", onScan);
+    return () => { clearInterval(t); window.removeEventListener("varredura-concluida", onScan); };
+  }, [user]);
+
+  function marcarAlertasVistos(maxId) { if (maxId) setSeen(maxId); setNovosAlertas(0); }
 
   function abrirBusca(entry) {
     setAbrir({ criterios: entry.criterios, filtro: entry.filtro, nonce: Date.now() });
@@ -113,11 +141,16 @@ export default function App() {
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`px-4 py-2 text-sm font-medium border-b-2 whitespace-nowrap ${
+              className={`px-4 py-2 text-sm font-medium border-b-2 whitespace-nowrap flex items-center gap-1.5 ${
                 tab === t.id ? "border-emerald-400 text-white" : "border-transparent text-slate-400 hover:text-white"
               }`}
             >
               {t.label}
+              {t.id === "alertas" && novosAlertas > 0 && (
+                <span className="bg-red-500 text-white text-[10px] font-bold rounded-full px-1.5 min-w-[18px] text-center">
+                  {novosAlertas}
+                </span>
+              )}
             </button>
           ))}
         </nav>
@@ -134,7 +167,7 @@ export default function App() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         {tab === "busca" && <Busca abrir={abrir} />}
         {tab === "monitors" && <Monitors onPedirLogin={() => setShowLogin(true)} />}
-        {tab === "alertas" && <Alertas onPedirLogin={() => setShowLogin(true)} />}
+        {tab === "alertas" && <Alertas onPedirLogin={() => setShowLogin(true)} onVisto={marcarAlertasVistos} />}
         {tab === "historico" && <Historico onAbrirBusca={abrirBusca} onPedirLogin={() => setShowLogin(true)} />}
         {tab === "settings" && <Settings />}
         {tab === "versoes" && <Versoes />}

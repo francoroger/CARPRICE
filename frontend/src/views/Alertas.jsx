@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { isLogged } from "../auth.js";
+import { permissaoNotif, pedirPermissaoNotif, suportaNotif } from "../notificacoes.js";
 import { CarCard } from "./Busca.jsx";
 
 const quando = (iso) => {
@@ -12,16 +13,23 @@ const quando = (iso) => {
   return new Date(ts).toLocaleDateString("pt-BR");
 };
 
-export function Alertas({ onPedirLogin }) {
+export function Alertas({ onPedirLogin, onVisto }) {
   const [lista, setLista] = useState(null);
+  const [perm, setPerm] = useState(permissaoNotif());
   const logado = isLogged();
 
   useEffect(() => {
     if (!logado) { setLista([]); return; }
-    api.alerts().then(setLista).catch(() => setLista([]));
-    const recar = () => api.alerts().then(setLista).catch(() => {});
-    window.addEventListener("varredura-concluida", recar);
-    return () => window.removeEventListener("varredura-concluida", recar);
+    function carrega() {
+      api.alerts().then((l) => {
+        setLista(l);
+        onVisto?.(l.reduce((mx, a) => Math.max(mx, a.id), 0)); // marca todos como vistos
+      }).catch(() => setLista([]));
+    }
+    carrega();
+    window.addEventListener("varredura-concluida", carrega);
+    return () => window.removeEventListener("varredura-concluida", carrega);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [logado]);
 
   if (!logado) {
@@ -42,6 +50,18 @@ export function Alertas({ onPedirLogin }) {
         limite de desconto). A varredura roda sozinha de tempos em tempos. Você também recebe por e-mail quando
         o envio estiver ativado.
       </div>
+
+      {suportaNotif() && perm !== "granted" && (
+        <div className="flex items-center justify-between gap-3 bg-white rounded-lg shadow-sm px-4 py-2 mb-4 text-sm">
+          <span className="text-slate-600">🔔 Quer receber um aviso na tela quando aparecer um carro novo?</span>
+          <button
+            onClick={async () => setPerm(await pedirPermissaoNotif())}
+            disabled={perm === "denied"}
+            className="text-xs font-medium bg-slate-900 text-white rounded px-3 py-1.5 hover:bg-slate-700 disabled:opacity-50 shrink-0">
+            {perm === "denied" ? "Bloqueado no navegador" : "Ativar notificações"}
+          </button>
+        </div>
+      )}
 
       {lista === null && <p className="text-sm text-slate-400">Carregando alertas…</p>}
       {lista && lista.length === 0 && (
