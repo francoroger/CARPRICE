@@ -192,6 +192,24 @@ def _score_focado(db: Session, listings: list[VehicleListing], params: ScorePara
 
 
 CACHE_MIN = 30  # resultados coletados há menos que isso são servidos do cache (instantâneo)
+MERCADO_DIAS = 45   # só considera anúncios vistos nos últimos N dias
+MERCADO_MAX = 4000  # teto de linhas carregadas (evita OOM no free tier ao crescer o banco)
+
+
+def _mercado_ativo(db: Session, criterios: dict) -> list[VehicleListing]:
+    """Anúncios ativos e RECENTES p/ o critério — filtra no SQL (não carrega o banco
+    inteiro na memória). Filtra por marca (comparáveis de score são da mesma marca)
+    e recência; teto de segurança de memória. O `passa_filtros` refina em Python.
+    """
+    corte = datetime.now(timezone.utc) - timedelta(days=MERCADO_DIAS)
+    q = select(VehicleListing).where(
+        VehicleListing.ativo.is_(True),
+        VehicleListing.ultimo_visto_em >= corte,
+    )
+    if criterios.get("marca"):
+        q = q.where(VehicleListing.marca.ilike(f"%{criterios['marca']}%"))
+    q = q.order_by(VehicleListing.ultimo_visto_em.desc()).limit(MERCADO_MAX)
+    return list(db.scalars(q).all())
 
 
 def buscar_ao_vivo(db: Session, criterios: dict, ordenar: str = "preco_asc",
@@ -208,8 +226,8 @@ def buscar_ao_vivo(db: Session, criterios: dict, ordenar: str = "preco_asc",
     def _naive(dt):
         return dt.replace(tzinfo=None) if (dt and dt.tzinfo) else dt
 
-    # cache-first: olha o mercado já coletado
-    todos = db.scalars(select(VehicleListing).where(VehicleListing.ativo.is_(True))).all()
+    # cache-first: olha o mercado já coletado (filtrado no SQL p/ não estourar memória)
+    todos = _mercado_ativo(db, criterios)
     matched_listings = [l for l in todos if passa_filtros(l, criterios)]
     corte = datetime.utcnow() - timedelta(minutes=CACHE_MIN)
     frescos = [l for l in matched_listings if l.ultimo_visto_em and _naive(l.ultimo_visto_em) >= corte]
@@ -236,7 +254,7 @@ def buscar_ao_vivo(db: Session, criterios: dict, ordenar: str = "preco_asc",
             portais_status.append({"portal": p.slug, "status": status,
                                    "qtd": len(raws), "erro": erro})
         db.commit()
-        todos = db.scalars(select(VehicleListing).where(VehicleListing.ativo.is_(True))).all()
+        todos = _mercado_ativo(db, criterios)
         matched_listings = [l for l in todos if passa_filtros(l, criterios)]
 
     _score_focado(db, matched_listings, params)

@@ -9,6 +9,17 @@ A cada alteração: nova versão + entrada aqui + documentação atualizada + pu
 ## [Não lançado]
 - (próximas alterações entram aqui)
 
+## [0.13.4] - 2026-06-16
+### Fixed
+- **Backend caía no Render ("Exited with status 3")**: com o banco agora permanente
+  (Aiven), a tabela `vehicle_listings` acumulava e `buscar_ao_vivo` carregava TODOS
+  os anúncios ativos na memória → estourava o limite de 512 MB do free tier (OOM).
+  Agora o mercado é filtrado no SQL (por marca + recência de 45 dias, teto de 4000
+  linhas) — memória limitada mesmo com o banco crescendo, sem perder comparáveis
+  de score.
+- **Boot resiliente**: falha de banco/scheduler no arranque não derruba mais o
+  serviço inteiro (evita crash-loop) — o app sobe e o pool reconecta por requisição.
+
 ## [0.13.3] - 2026-06-16
 ### Fixed
 - **Versão base sumia ao filtrar por versão**: a FIPE nomeia por TRIM ("Gol

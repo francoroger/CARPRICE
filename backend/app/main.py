@@ -13,14 +13,26 @@ from app.seed import init_db
 from app.services.scheduler import shutdown_scheduler, start_scheduler
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+log = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    init_db()
-    start_scheduler()
+    # Boot RESILIENTE: um soluço do banco/scheduler no arranque não pode derrubar
+    # o serviço inteiro (senão o Render entra em crash-loop → "Exited with status").
+    try:
+        init_db()
+    except Exception:
+        log.exception("init_db falhou no boot — seguindo; o pool reconecta por requisição")
+    try:
+        start_scheduler()
+    except Exception:
+        log.exception("scheduler não iniciou")
     yield
-    shutdown_scheduler()
+    try:
+        shutdown_scheduler()
+    except Exception:
+        pass
 
 
 app = FastAPI(title="CarPrice — Monitoramento de Preços de Carros", lifespan=lifespan)
