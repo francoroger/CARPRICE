@@ -37,6 +37,7 @@ from app.services import notifications
 from app.services.fipe import get_fipe_client
 from app.services.filters import passa_filtros
 from app.services.scoring import ScoreInput, ScoreParams, calcular_scores, faixa_de_km
+from app.config import settings
 from app.services.settings_service import get_score_params
 
 log = logging.getLogger(__name__)
@@ -282,22 +283,38 @@ def buscar_ao_vivo(db: Session, criterios: dict, ordenar: str = "preco_asc",
     return {"portais": portais_status, "total": len(rows), "rows": rows}
 
 
-def run_active_monitors(db: Session, progresso=None) -> dict:
+def _vencido(m: Monitor, agora: datetime) -> bool:
+    """O monitor já passou da sua frequência desde a última execução?"""
+    if not m.ultima_exec_em:
+        return True
+    ultima = m.ultima_exec_em
+    if ultima.tzinfo is None:
+        ultima = ultima.replace(tzinfo=timezone.utc)
+    return agora - ultima >= timedelta(minutes=max(15, m.frequencia_min or 60))
+
+
+def run_active_monitors(db: Session, progresso=None, user_id: int | None = None,
+                        somente_vencidos: bool = True) -> dict:
     """Varredura dos monitores = o MESMO pipeline da busca ao vivo, por monitor.
 
-    Cada monitor roda `buscar_ao_vivo` com seus critérios → coleta paralela nos 6
-    portais, filtros no servidor do CarroSP (ano/km/preço/raio), marca canônica,
-    cache-first (monitores com critérios parecidos reaproveitam a coleta) e score
-    focado. Depois notifica os matches NOVOS acima do threshold (anti-spam em
-    MonitorMatch/Notification).
+    Cada monitor roda `buscar_ao_vivo` com seus critérios (coleta paralela,
+    filtros no servidor do CarroSP, cache-first, score focado) e os carros NOVOS
+    acima do limite viram alertas + UM e-mail-resumo por monitor.
 
+    - `user_id`: só os monitores desse usuário (botão "Varrer agora").
+    - `somente_vencidos`: o agendador passa True → cada monitor respeita a
+      própria `frequencia_min`; o botão manual passa False (roda já).
+    Monitores sem dono (legado anônimo) não rodam mais.
     `progresso(dict)`: callback opcional p/ reportar andamento (status na UI).
     """
     avisa = progresso or (lambda _d: None)
     params = get_score_params(db)
-    ativos = db.scalars(
-        select(Monitor).where(Monitor.status == MonitorStatus.ATIVO.value)
-    ).all()
+    agora = datetime.now(timezone.utc)
+    q = select(Monitor).where(Monitor.status == MonitorStatus.ATIVO.value,
+                              Monitor.user_id.isnot(None))
+    if user_id is not None:
+        q = q.where(Monitor.user_id == user_id)
+    ativos = [m for m in db.scalars(q).all() if not somente_vencidos or _vencido(m, agora)]
     avisa({"monitores_total": len(ativos), "monitores_feitos": 0})
 
     total_resultados = 0
@@ -309,6 +326,7 @@ def run_active_monitors(db: Session, progresso=None) -> dict:
                                        ordenar="desconto")
         except Exception:
             log.exception("varredura do monitor %s falhou — segue p/ o próximo", m.id)
+            db.rollback()
             avisa({"monitores_feitos": i})
             continue
         total_resultados += resultado["total"]
@@ -317,11 +335,13 @@ def run_active_monitors(db: Session, progresso=None) -> dict:
                      else params.threshold_desconto)
         candidatos = [(l, s) for (l, s, _slug) in resultado["rows"]
                       if s.desconto is not None and s.desconto >= threshold]
+        novos = []
         for pos, (listing, score) in enumerate(candidatos, start=1):
-            novo = notifications.registrar_match(db, m, listing, score.desconto, pos)
-            if novo and "email" in (m.canais_notif or []):
-                if notifications.enviar_email(db, m, listing, score, pos):
-                    notificados += 1
+            if notifications.registrar_match(db, m, listing, score.desconto, pos):
+                novos.append((listing, score))
+        if novos and "email" in (m.canais_notif or []):
+            if notifications.enviar_resumo(db, m, novos):
+                notificados += len(novos)
         m.ultima_exec_em = datetime.now(timezone.utc)
         db.commit()
         avisa({"monitores_feitos": i})
@@ -330,3 +350,23 @@ def run_active_monitors(db: Session, progresso=None) -> dict:
               "notificados": notificados}
     log.info("varredura concluída: %s", resumo)
     return resumo
+
+
+def limpeza(db: Session) -> dict:
+    """Manutenção diária: anúncios não vistos há muito saem do mercado e logs
+    antigos são apagados — mantém o banco (Aiven free) pequeno e as buscas rápidas."""
+    from sqlalchemy import delete, update
+
+    agora = datetime.now(timezone.utc)
+    corte_anuncio = agora - timedelta(days=settings.limpeza_anuncios_dias)
+    corte_log = agora - timedelta(days=settings.limpeza_logs_dias)
+    inativados = db.execute(
+        update(VehicleListing)
+        .where(VehicleListing.ativo.is_(True), VehicleListing.ultimo_visto_em < corte_anuncio)
+        .values(ativo=False)
+    ).rowcount
+    apagados = db.execute(delete(ScrapeLog).where(ScrapeLog.executado_em < corte_log)).rowcount
+    db.commit()
+    res = {"anuncios_inativados": inativados or 0, "logs_apagados": apagados or 0}
+    log.info("limpeza: %s", res)
+    return res

@@ -9,6 +9,38 @@ A cada alteração: nova versão + entrada aqui + documentação atualizada + pu
 ## [Não lançado]
 - (próximas alterações entram aqui)
 
+## [0.14.0] - 2026-11-25
+Rodada de melhorias a partir de uma auditoria completa do sistema.
+### Security
+- **Configurações protegidas**: alterar parâmetros do score e ligar/desligar portais
+  agora exige login de **administrador** (`ADMIN_EMAILS`); antes qualquer visitante
+  podia mudar. A tela de Configurações fica em modo leitura para os demais.
+- **Monitores só com conta**: monitores anônimos não existem mais — qualquer visitante
+  criava monitores que rodavam na varredura de todos e podiam ser apagados por outros.
+  Cada usuário só vê, edita e apaga os seus.
+- **"Varrer agora" exige login** e varre apenas os monitores do usuário.
+- **Rate limit por IP**: login (10/10 min), cadastro (5/h) e busca ao vivo (30/10 min).
+### Added
+- **Frequência por monitor** de verdade: escolha 30 min, 1 h, 3 h, 6 h, 12 h ou 1 dia.
+  O agendador verifica a cada 15 min e roda só os monitores vencidos (antes o campo
+  era ignorado e tudo rodava de hora em hora). A lista mostra a última verificação.
+- **E-mail-resumo em HTML**: um único e-mail por monitor e varredura, com foto,
+  preço, % abaixo do mercado e link de cada carro (antes era um e-mail por carro).
+- **Limpeza diária automática** (04h): anúncios não vistos há 60 dias saem do mercado
+  e logs com mais de 30 dias são apagados — banco pequeno e buscas rápidas.
+- **Health check toca o banco** (`SELECT 1`): o keep-warm mantém o Aiven ativo — foi
+  a ociosidade que fez o Aiven desligar e derrubar o sistema. O JSON informa o banco.
+- **Testes de API** (`tests/test_api.py`, 9 cenários): total 41 testes.
+### Fixed
+- **Excluir monitor com alertas quebrava no Postgres** (FK de notifications/scrape_logs
+  sem cascade) — agora limpa as dependências antes.
+- Erros ao criar/pausar/excluir monitor e ao salvar Configurações agora aparecem na
+  tela (antes falhavam em silêncio); excluir pede confirmação.
+### Removed
+- Monitor "Demo — Onix em SP" do seed (anônimo, não roda mais).
+### Docs
+- README reescrito (arquitetura atual, variáveis de ambiente, segurança, limites).
+
 ## [0.13.4] - 2026-06-16
 ### Fixed
 - **Backend caía no Render ("Exited with status 3")**: com o banco agora permanente

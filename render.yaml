@@ -27,3 +27,6 @@ services:
       # Segredo do JWT (login). Defina um valor aleatório no painel do Render.
       - key: JWT_SECRET
         sync: false
+      # E-mails (vírgula) que podem editar as Configurações. Vazio = qualquer logado.
+      - key: ADMIN_EMAILS
+        sync: false

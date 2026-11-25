@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.constants import SCORE_PARAMS_KEY
 from app.database import get_db
+from app.deps import usuario_admin
 from app.models import Portal
 from app.schemas import PortalRead, ScoreParamsRead, SettingUpdate
 from app.services.settings_service import get_score_params, get_setting, set_setting
@@ -17,7 +18,8 @@ def ler_score(db: Session = Depends(get_db)):
     return get_score_params(db).__dict__
 
 
-@router.put("/score", response_model=ScoreParamsRead)
+@router.put("/score", response_model=ScoreParamsRead,
+            dependencies=[Depends(usuario_admin)])
 def gravar_score(payload: SettingUpdate, db: Session = Depends(get_db)):
     if not isinstance(payload.valor_json, dict):
         raise HTTPException(400, "score params deve ser um objeto")
@@ -32,7 +34,8 @@ def listar_portais(db: Session = Depends(get_db)):
     return db.scalars(select(Portal).order_by(Portal.nome)).all()
 
 
-@router.patch("/portals/{slug}", response_model=PortalRead)
+@router.patch("/portals/{slug}", response_model=PortalRead,
+              dependencies=[Depends(usuario_admin)])
 def alternar_portal(slug: str, ativo: bool, db: Session = Depends(get_db)):
     p = db.scalar(select(Portal).where(Portal.slug == slug))
     if not p:

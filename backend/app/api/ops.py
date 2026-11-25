@@ -6,7 +6,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal, get_db
-from app.models import ScrapeLog
+from app.deps import usuario_atual
+from app.models import ScrapeLog, User
 from app.schemas import ScrapeLogRead
 from app.services.scrape import run_active_monitors
 
@@ -32,10 +33,11 @@ def logs(db: Session = Depends(get_db), limit: int = 50):
     ).all()
 
 
-def _run_now() -> None:
+def _run_now(user_id: int) -> None:
     db = SessionLocal()
     try:
-        resumo = run_active_monitors(db, progresso=VARREDURA.update)
+        resumo = run_active_monitors(db, progresso=VARREDURA.update,
+                                     user_id=user_id, somente_vencidos=False)
         VARREDURA.update(estado="ocioso", resumo=resumo, monitor_atual=None)
     except Exception as e:  # noqa: BLE001 — status precisa voltar a ocioso sempre
         VARREDURA.update(estado="ocioso", erro=str(e), monitor_atual=None)
@@ -44,8 +46,8 @@ def _run_now() -> None:
 
 
 @router.post("/scrape/run")
-def disparar(background: BackgroundTasks):
-    """Dispara uma varredura imediata em segundo plano (1 por vez)."""
+def disparar(background: BackgroundTasks, user: User = Depends(usuario_atual)):
+    """Varre AGORA os monitores do usuário logado (1 varredura por vez)."""
     if VARREDURA["estado"] == "rodando":
         return {"status": "ja_rodando"}
     VARREDURA.update(
@@ -53,7 +55,7 @@ def disparar(background: BackgroundTasks):
         monitores_total=0, monitor_atual=None,
         iniciado_em=datetime.now(timezone.utc).isoformat(),
     )
-    background.add_task(_run_now)
+    background.add_task(_run_now, user.id)
     return {"status": "varredura iniciada"}
 
 

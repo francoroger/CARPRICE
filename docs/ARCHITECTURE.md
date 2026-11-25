@@ -90,8 +90,28 @@ score focado (FIPE fresca p/ grupos pequenos) → ordena (preço/desconto) → d
 ### Varredura dos monitores (`run_active_monitors`)
 **Mesmo pipeline da busca ao vivo**, por monitor: cada monitor ativo roda
 `buscar_ao_vivo(criterios_json)` (paralelo + filtros server-side + cache-first +
-score focado) e notifica os matches novos acima do threshold (anti-spam por
+score focado) e registra os matches novos acima do threshold (anti-spam por
 MonitorMatch/Notification). Um monitor que falha é logado e pulado.
+
+- **Agendador** (`services/scheduler.py`): tick a cada 15 min roda só os monitores
+  **vencidos** (`ultima_exec_em + frequencia_min`, mín. 15 min) e **com dono** —
+  monitores anônimos não existem mais. Job diário 04h: `limpeza()` tira do
+  mercado anúncios não vistos há 60 dias e apaga logs com mais de 30 dias.
+- **"Varrer agora"** (`POST /api/scrape/run`, exige login): roda já os monitores
+  do usuário, ignorando a frequência.
+- **E-mail-resumo** (`notifications.enviar_resumo`): UM e-mail HTML por monitor e
+  varredura com todos os carros novos (foto, preço, % abaixo do mercado, link).
+
+### Segurança
+- Auth JWT (`deps.usuario_atual`); admin = e-mail em `ADMIN_EMAILS`
+  (`deps.usuario_admin`) — protege `PUT /api/settings/score` e
+  `PATCH /api/settings/portals/*`. `GET /api/auth/me` devolve `admin`.
+- Rate limit em memória por IP (`app/ratelimit.py`): login 10/10 min,
+  cadastro 5/h, busca 30/10 min (429 com tempo de espera).
+- Monitores: CRUD só do próprio usuário; o DELETE limpa `notifications` e
+  desvincula `scrape_logs` antes (FKs sem cascade no Postgres).
+- `GET /api/health` executa `SELECT 1` — o keep-warm mantém o banco ativo (o
+  Aiven free desliga serviços ociosos) e o JSON informa `banco: ok|indisponivel`.
 
 ### API (`app/api/`)
 `monitors` (CRUD), `listings` (rankeado), `settings` (score+portais), `ops`

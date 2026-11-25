@@ -76,6 +76,7 @@ export default function App() {
 
   // Varredura com PROGRESSO REAL: dispara e faz polling do status até concluir.
   async function runNow() {
+    if (!isLogged()) { setShowLogin(true); return; }
     setRunning(true);
     setMsg("Iniciando varredura…");
     try {
@@ -93,7 +94,7 @@ export default function App() {
         }
         if (s.erro) setMsg("Erro na varredura: " + s.erro);
         else if (s.resumo && s.resumo.monitores === 0)
-          setMsg("Nenhum monitor cadastrado — a varredura roda os MONITORES. Crie um na aba Monitores (ou use a Busca direto).");
+          setMsg("Você não tem monitores ativos — crie um na aba Monitores (ou use a Busca direto).");
         else if (s.resumo)
           setMsg(`✓ Varredura concluída: ${s.resumo.monitores} monitor(es), ${s.resumo.resultados} resultados, ${s.resumo.notificados} alerta(s).`);
         else setMsg("✓ Varredura concluída.");

@@ -4,12 +4,27 @@ import { isLogged } from "../auth.js";
 import { EMPTY_FILTRO, FiltroVeiculos, Inp, criteriosFromFiltro } from "../components/FiltroVeiculos.jsx";
 import { CarCard } from "./Busca.jsx";
 
+const FREQUENCIAS = [[30, "30 minutos"], [60, "1 hora"], [180, "3 horas"],
+  [360, "6 horas"], [720, "12 horas"], [1440, "1 dia"]];
+const rotuloFreq = (min) => {
+  const f = FREQUENCIAS.find(([v]) => v === min);
+  return f ? `a cada ${f[1]}` : `a cada ${min} min`;
+};
+const quando = (iso) => {
+  const d = (Date.now() - Date.parse(iso)) / 1000;
+  if (d < 3600) return `há ${Math.max(1, Math.floor(d / 60))} min`;
+  if (d < 86400) return `há ${Math.floor(d / 3600)} h`;
+  return new Date(iso).toLocaleDateString("pt-BR");
+};
+
 export function Monitors({ onPedirLogin }) {
   const [monitors, setMonitors] = useState([]);
   const [filtro, setFiltro] = useState(EMPTY_FILTRO);
   const [nome, setNome] = useState("");
   const [threshold, setThreshold] = useState(8);
+  const [frequencia, setFrequencia] = useState(60);
   const [saving, setSaving] = useState(false);
+  const [erro, setErro] = useState("");
   // resultados do monitor aberto: { id, nome, lista, loading }
   const [res, setRes] = useState(null);
 
@@ -30,7 +45,8 @@ export function Monitors({ onPedirLogin }) {
 
   async function create(e) {
     e.preventDefault();
-    setSaving(true);
+    if (!logado) { onPedirLogin?.(); return; }
+    setSaving(true); setErro("");
     try {
       const criterios = criteriosFromFiltro(filtro);
       delete criterios.marcaCodigo;
@@ -38,21 +54,29 @@ export function Monitors({ onPedirLogin }) {
         nome: nome || `${filtro.marca} ${filtro.modelo}`.trim() || "Novo monitor",
         criterios_json: criterios,
         threshold_desconto: Number(threshold) / 100,
+        frequencia_min: Number(frequencia),
         canais_notif: ["email"], status: "ativo",
       });
-      setFiltro(EMPTY_FILTRO); setNome(""); setThreshold(8);
+      setFiltro(EMPTY_FILTRO); setNome(""); setThreshold(8); setFrequencia(60);
       load();
+    } catch (err) {
+      setErro(err.message || "não foi possível criar o monitor");
     } finally { setSaving(false); }
   }
 
   async function toggle(m) {
-    await api.updateMonitor(m.id, { status: m.status === "ativo" ? "pausado" : "ativo" });
-    load();
+    setErro("");
+    try { await api.updateMonitor(m.id, { status: m.status === "ativo" ? "pausado" : "ativo" }); load(); }
+    catch (err) { setErro(err.message); }
   }
   async function remove(id) {
-    await api.deleteMonitor(id);
-    setRes((r) => (r && r.id === id ? null : r));
-    load();
+    if (!confirm("Excluir este monitor?")) return;
+    setErro("");
+    try {
+      await api.deleteMonitor(id);
+      setRes((r) => (r && r.id === id ? null : r));
+      load();
+    } catch (err) { setErro(err.message); }
   }
 
   // Mostra OS CARROS que o monitor encontra: mesma busca dos critérios dele.
@@ -92,9 +116,18 @@ export function Monitors({ onPedirLogin }) {
           <Inp ph="8" value={threshold} onChange={setThreshold} />
         </label>
 
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-slate-500">Verificar a cada</span>
+          <select value={frequencia} onChange={(e) => setFrequencia(e.target.value)} className="input">
+            {FREQUENCIAS.map(([v, lab]) => <option key={v} value={v}>{lab}</option>)}
+          </select>
+        </label>
+
+        {erro && <p className="text-sm text-rose-600">{erro}</p>}
+
         <button disabled={saving}
           className="w-full bg-slate-900 hover:bg-slate-700 text-white rounded-lg py-2 text-sm font-medium disabled:opacity-50">
-          {saving ? "Salvando…" : "Criar monitor"}
+          {saving ? "Salvando…" : logado ? "Criar monitor" : "Entrar para criar monitor"}
         </button>
       </form>
 
@@ -113,7 +146,8 @@ export function Monitors({ onPedirLogin }) {
                 {Object.entries(m.criterios_json || {}).filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`).join("  ·  ") || "sem filtros"}
               </div>
               <div className="text-xs text-slate-400 mt-1">
-                notificar ≥ {(m.threshold_desconto * 100).toFixed(0)}% · a cada {m.frequencia_min} min
+                notificar ≥ {(m.threshold_desconto * 100).toFixed(0)}% · {rotuloFreq(m.frequencia_min)}
+                {" · "}{m.ultima_exec_em ? `última verificação ${quando(m.ultima_exec_em)}` : "ainda não verificado"}
               </div>
             </div>
             <div className="flex gap-2 shrink-0">

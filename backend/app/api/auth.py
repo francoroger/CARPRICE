@@ -4,7 +4,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.deps import usuario_atual
+from app.deps import eh_admin, usuario_atual
+from app.ratelimit import limite
 from app.models import User
 from app.schemas import (
     AuthResponse,
@@ -18,7 +19,12 @@ from app.services.auth_service import cria_token, hash_senha, verifica_senha
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
-@router.post("/register", response_model=AuthResponse)
+def _ler(user: User) -> UserRead:
+    return UserRead(id=user.id, nome=user.nome, email=user.email, admin=eh_admin(user))
+
+
+@router.post("/register", response_model=AuthResponse,
+             dependencies=[Depends(limite("register", 5, 3600))])
 def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     email = payload.email.lower().strip()
     if db.scalar(select(User).where(User.email == email)):
@@ -30,21 +36,22 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
-    return AuthResponse(token=cria_token(user.id), user=UserRead.model_validate(user))
+    return AuthResponse(token=cria_token(user.id), user=_ler(user))
 
 
-@router.post("/login", response_model=AuthResponse)
+@router.post("/login", response_model=AuthResponse,
+             dependencies=[Depends(limite("login", 10, 600))])
 def login(payload: LoginRequest, db: Session = Depends(get_db)):
     email = payload.email.lower().strip()
     user = db.scalar(select(User).where(User.email == email))
     if not user or not verifica_senha(payload.senha, user.senha_hash):
         raise HTTPException(401, "e-mail ou senha inválidos")
-    return AuthResponse(token=cria_token(user.id), user=UserRead.model_validate(user))
+    return AuthResponse(token=cria_token(user.id), user=_ler(user))
 
 
 @router.get("/me", response_model=UserRead)
 def me(user: User = Depends(usuario_atual)):
-    return user
+    return _ler(user)
 
 
 @router.patch("/me", response_model=UserRead)
@@ -66,4 +73,4 @@ def atualizar_me(payload: UpdateMeRequest, user: User = Depends(usuario_atual),
         user.senha_hash = hash_senha(payload.senha_nova)
     db.commit()
     db.refresh(user)
-    return user
+    return _ler(user)

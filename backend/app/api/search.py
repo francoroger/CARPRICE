@@ -4,13 +4,15 @@ from sqlalchemy.orm import Session
 
 from app.collectors.base import marca_canonica
 from app.database import get_db
+from app.ratelimit import limite
 from app.schemas import ListingRead, SearchRequest, SearchResponse
 from app.services.scrape import buscar_ao_vivo
 
 router = APIRouter(prefix="/api", tags=["search"])
 
 
-@router.post("/search", response_model=SearchResponse)
+@router.post("/search", response_model=SearchResponse,
+             dependencies=[Depends(limite("search", 30, 600))])
 def buscar(req: SearchRequest, db: Session = Depends(get_db)):
     """Entra nos portais ativos ao vivo, traz tudo e filtra pelos critérios.
 

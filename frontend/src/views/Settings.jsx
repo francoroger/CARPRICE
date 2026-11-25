@@ -1,11 +1,19 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
+import { getUser } from "../auth.js";
 
 export function Settings() {
   const [score, setScore] = useState(null);
   const [portals, setPortals] = useState([]);
   const [logs, setLogs] = useState([]);
   const [saved, setSaved] = useState(false);
+  const [erro, setErro] = useState("");
+  const [admin, setAdmin] = useState(!!getUser()?.admin);
+  useEffect(() => {
+    const f = () => setAdmin(!!getUser()?.admin);
+    window.addEventListener("auth-mudou", f);
+    return () => window.removeEventListener("auth-mudou", f);
+  }, []);
 
   async function load() {
     setScore(await api.scoreParams());
@@ -15,6 +23,8 @@ export function Settings() {
   useEffect(() => { load(); }, []);
 
   async function saveScore() {
+    setErro("");
+    try {
     await api.saveScore({
       min_grupo: Number(score.min_grupo),
       alpha_km: Number(score.alpha_km),
@@ -24,11 +34,13 @@ export function Settings() {
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+    } catch (err) { setErro(err.message); }
   }
 
   async function togglePortal(p) {
-    await api.togglePortal(p.slug, !p.ativo);
-    load();
+    setErro("");
+    try { await api.togglePortal(p.slug, !p.ativo); load(); }
+    catch (err) { setErro(err.message); }
   }
 
   if (!score) return <p className="text-slate-400">Carregando…</p>;
@@ -37,6 +49,13 @@ export function Settings() {
     <div className="grid md:grid-cols-2 gap-6">
       <section className="bg-white rounded-xl shadow-sm p-4 space-y-3">
         <h2 className="font-semibold">Parâmetros do Preço de Mercado</h2>
+        {!admin && (
+          <p className="text-xs bg-amber-50 border border-amber-200 text-amber-800 rounded px-3 py-2">
+            Somente administradores podem alterar as configurações (modo leitura).
+          </p>
+        )}
+        {erro && <p className="text-sm text-rose-600">{erro}</p>}
+        <fieldset disabled={!admin} className="space-y-3 disabled:opacity-60">
         <Row label="Mín. de anúncios comparáveis (referência de mercado)">
           <input className="input" type="number" value={score.min_grupo}
             onChange={(e) => setScore({ ...score, min_grupo: e.target.value })} />
@@ -57,9 +76,12 @@ export function Settings() {
           <input className="input" value={score.faixas_km}
             onChange={(e) => setScore({ ...score, faixas_km: e.target.value })} />
         </Row>
-        <button onClick={saveScore} className="bg-slate-900 hover:bg-slate-700 text-white rounded-lg px-4 py-2 text-sm font-medium">
-          {saved ? "Salvo ✓" : "Salvar parâmetros"}
-        </button>
+        </fieldset>
+        {admin && (
+          <button onClick={saveScore} className="bg-slate-900 hover:bg-slate-700 text-white rounded-lg px-4 py-2 text-sm font-medium">
+            {saved ? "Salvo ✓" : "Salvar parâmetros"}
+          </button>
+        )}
       </section>
 
       <section className="bg-white rounded-xl shadow-sm p-4">
@@ -71,8 +93,8 @@ export function Settings() {
                 {p.nome}
                 {p.min_tier > 1 && <span className="ml-2 text-xs text-amber-600">nível {p.min_tier}</span>}
               </span>
-              <button onClick={() => togglePortal(p)}
-                className={`px-3 py-1 rounded text-xs font-medium ${p.ativo ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-500"}`}>
+              <button onClick={() => togglePortal(p)} disabled={!admin}
+                className={`disabled:cursor-default px-3 py-1 rounded text-xs font-medium ${p.ativo ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-500"}`}>
                 {p.ativo ? "ativo" : "inativo"}
               </button>
             </div>

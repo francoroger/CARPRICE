@@ -1,4 +1,4 @@
-"""Criação das tabelas e seed inicial (portais + parâmetros + monitor demo)."""
+"""Criação das tabelas e seed inicial (portais + parâmetros)."""
 from __future__ import annotations
 
 from sqlalchemy import select
@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.constants import DEFAULT_SCORE_PARAMS, SCORE_PARAMS_KEY
 from app.database import Base, SessionLocal, engine
-from app.models import AccessTier, Monitor, Portal, Setting
+from app.models import AccessTier, Portal, Setting
 
 # Portais conhecidos (validados no spike). Os de anti-bot entram desativados.
 PORTAIS = [
@@ -41,16 +41,6 @@ def _seed(db: Session) -> None:
     if not db.scalar(select(Setting).where(Setting.chave == SCORE_PARAMS_KEY)):
         db.add(Setting(chave=SCORE_PARAMS_KEY, valor_json=DEFAULT_SCORE_PARAMS))
 
-    if not db.scalar(select(Monitor)):
-        db.add(Monitor(
-            nome="Demo — Onix em SP",
-            criterios_json={"modelo": "onix", "uf": "SP", "cidade": "sao-paulo",
-                            "preco_max": 90000, "km_max": 100000},
-            frequencia_min=60,
-            threshold_desconto=0.08,
-            canais_notif=["email"],
-            status="ativo",
-        ))
     db.commit()
 
 

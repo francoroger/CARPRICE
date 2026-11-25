@@ -57,4 +57,17 @@ app.include_router(localidades.router)
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok"}
+    """Saúde do serviço. Faz um SELECT 1 no banco: o keep-warm (a cada 10 min)
+    passa a manter o Postgres com atividade — o Aiven free desliga quando ocioso.
+    Responde 200 mesmo com o banco fora (o Render não deve reiniciar o app por isso)."""
+    from sqlalchemy import text
+
+    from app.database import engine
+    try:
+        with engine.connect() as c:
+            c.execute(text("SELECT 1"))
+        banco = "ok"
+    except Exception as e:  # noqa: BLE001
+        log.warning("health: banco indisponível: %s", e)
+        banco = "indisponivel"
+    return {"status": "ok", "banco": banco}

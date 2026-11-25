@@ -1,33 +1,42 @@
-"""CRUD de monitores — escopados por usuário quando logado (convidado vê os sem dono)."""
+"""CRUD de monitores — sempre de um usuário logado.
+
+Monitor anônimo não existe mais: qualquer visitante criava monitores que rodavam
+na varredura de todos (custo/abuso) e eram visíveis/apagáveis por qualquer outro.
+Convidado lista vazio e é convidado a entrar.
+"""
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.deps import usuario_opcional
-from app.models import Monitor, User
+from app.deps import usuario_atual, usuario_opcional
+from app.models import Monitor, Notification, ScrapeLog, User
 from app.schemas import MonitorCreate, MonitorRead, MonitorUpdate
 
 router = APIRouter(prefix="/api/monitors", tags=["monitors"])
 
 
-def _dono_ok(m: Monitor, user: User | None) -> bool:
-    """Logado: só os seus. Convidado: só os sem dono (user_id nulo)."""
-    return m.user_id == (user.id if user else None)
+def _do_usuario(db: Session, monitor_id: int, user: User) -> Monitor:
+    m = db.get(Monitor, monitor_id)
+    if not m or m.user_id != user.id:
+        raise HTTPException(404, "monitor não encontrado")
+    return m
 
 
 @router.get("", response_model=list[MonitorRead])
 def listar(user: User | None = Depends(usuario_opcional), db: Session = Depends(get_db)):
-    q = (select(Monitor)
-         .where(Monitor.user_id == (user.id if user else None))
-         .order_by(Monitor.criado_em.desc()))
-    return db.scalars(q).all()
+    if not user:
+        return []
+    return db.scalars(
+        select(Monitor).where(Monitor.user_id == user.id)
+        .order_by(Monitor.criado_em.desc())
+    ).all()
 
 
 @router.post("", response_model=MonitorRead, status_code=201)
-def criar(payload: MonitorCreate, user: User | None = Depends(usuario_opcional),
+def criar(payload: MonitorCreate, user: User = Depends(usuario_atual),
           db: Session = Depends(get_db)):
-    m = Monitor(**payload.model_dump(), user_id=user.id if user else None)
+    m = Monitor(**payload.model_dump(), user_id=user.id)
     db.add(m)
     db.commit()
     db.refresh(m)
@@ -35,20 +44,15 @@ def criar(payload: MonitorCreate, user: User | None = Depends(usuario_opcional),
 
 
 @router.get("/{monitor_id}", response_model=MonitorRead)
-def obter(monitor_id: int, user: User | None = Depends(usuario_opcional),
+def obter(monitor_id: int, user: User = Depends(usuario_atual),
           db: Session = Depends(get_db)):
-    m = db.get(Monitor, monitor_id)
-    if not m or not _dono_ok(m, user):
-        raise HTTPException(404, "monitor não encontrado")
-    return m
+    return _do_usuario(db, monitor_id, user)
 
 
 @router.patch("/{monitor_id}", response_model=MonitorRead)
 def atualizar(monitor_id: int, payload: MonitorUpdate,
-              user: User | None = Depends(usuario_opcional), db: Session = Depends(get_db)):
-    m = db.get(Monitor, monitor_id)
-    if not m or not _dono_ok(m, user):
-        raise HTTPException(404, "monitor não encontrado")
+              user: User = Depends(usuario_atual), db: Session = Depends(get_db)):
+    m = _do_usuario(db, monitor_id, user)
     for k, v in payload.model_dump(exclude_unset=True).items():
         setattr(m, k, v)
     db.commit()
@@ -57,9 +61,11 @@ def atualizar(monitor_id: int, payload: MonitorUpdate,
 
 
 @router.delete("/{monitor_id}", status_code=204)
-def remover(monitor_id: int, user: User | None = Depends(usuario_opcional),
+def remover(monitor_id: int, user: User = Depends(usuario_atual),
             db: Session = Depends(get_db)):
-    m = db.get(Monitor, monitor_id)
-    if m and _dono_ok(m, user):
-        db.delete(m)
-        db.commit()
+    m = _do_usuario(db, monitor_id, user)
+    # FKs sem cascade: limpa as dependências antes (senão o Postgres recusa o DELETE)
+    db.execute(delete(Notification).where(Notification.monitor_id == m.id))
+    db.execute(update(ScrapeLog).where(ScrapeLog.monitor_id == m.id).values(monitor_id=None))
+    db.delete(m)
+    db.commit()

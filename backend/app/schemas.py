@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 from pydantic import EmailStr
@@ -25,6 +25,7 @@ class UserRead(BaseModel):
     id: int
     nome: str
     email: str
+    admin: bool = False  # pode editar as Configurações (ADMIN_EMAILS)
 
 
 class UpdateMeRequest(BaseModel):
@@ -72,7 +73,7 @@ class SearchHistoryRead(BaseModel):
 class MonitorBase(BaseModel):
     nome: str
     criterios_json: dict = {}
-    frequencia_min: int = 60
+    frequencia_min: int = Field(default=60, ge=15, le=1440)
     threshold_desconto: float = 0.08
     canais_notif: list[str] = ["email"]
     status: str = "ativo"
@@ -85,7 +86,7 @@ class MonitorCreate(MonitorBase):
 class MonitorUpdate(BaseModel):
     nome: str | None = None
     criterios_json: dict | None = None
-    frequencia_min: int | None = None
+    frequencia_min: int | None = Field(default=None, ge=15, le=1440)
     threshold_desconto: float | None = None
     canais_notif: list[str] | None = None
     status: str | None = None

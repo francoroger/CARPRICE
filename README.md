@@ -1,61 +1,39 @@
 # CarPrice — Monitoramento de Preços de Carros
 
-**🌐 Site no ar: [pricecar.netlify.app](https://pricecar.netlify.app)** · **Versão `0.5.4`** · [Changelog](CHANGELOG.md) · [Arquitetura](docs/ARCHITECTURE.md) · [Especificação](PROJETO_v3.md)
+**🌐 Site no ar: [pricecar.netlify.app](https://pricecar.netlify.app)** · [Changelog](CHANGELOG.md) (versão atual na aba **Versões** do app e no arquivo [`VERSION`](VERSION)) · [Arquitetura](docs/ARCHITECTURE.md) · [Especificação](PROJETO_v3.md)
 
-> Frontend no **Netlify** (responsivo) chamando o backend FastAPI no **Render**.
-> A 1ª busca após inatividade demora ~50s (free tier hiberna); depois fica rápido.
+Busca ao vivo em vários portais brasileiros (CarroSP, Napista, iCarros, Comprecar,
+Localiza, Mobiauto), compara carros iguais pelo **Preço de Mercado** (mesma
+versão/modelo + ano, ajustado por km) e avisa quando aparece uma oportunidade.
 
-Sistema que monitora anúncios de veículos em múltiplos portais brasileiros,
-identifica o **melhor custo-benefício comparando carros idênticos** (versão + ano,
-ajustado por km, com FIPE como fallback) e notifica por e-mail quando surge uma
-oportunidade. _"Configure uma vez e aguarde os resultados chegarem."_
+## O que o app faz
 
-Especificação completa: [PROJETO_v3.md](PROJETO_v3.md). Provas de coleta: [`/spike`](spike).
-
-## 🚀 Deploy (Netlify + Render)
-
-O app tem **2 partes**: o **frontend** (site estático, vai no Netlify) e o **backend**
-Python que faz o scraping ao vivo (vai num host de servidor, ex.: Render). O Netlify
-**não roda** o backend Python — ele só serve o site e repassa `/api` pro backend.
-
-**1) Backend no Render** (https://render.com → New → Blueprint → este repo)
-- O `render.yaml` cria o serviço FastAPI automaticamente (plano free, só httpx — sem navegador).
-- Ao terminar, copie a URL gerada (ex.: `https://carprice-api.onrender.com`).
-
-**2) Aponte o frontend pro backend**
-- Edite `netlify.toml` → no redirect `/api/*`, troque a URL pela do seu backend.
-- Commit + push (`git add netlify.toml && git commit -m "aponta backend" && git push`).
-
-**3) Frontend no Netlify** (https://app.netlify.com → Add new site → Import → este repo)
-- O `netlify.toml` já define: base `frontend`, build `npm run build`, publish `dist`.
-- Pronto — o site sobe responsivo e as buscas chamam o backend via proxy `/api`.
-
-> ⚠️ **Aviso honesto:** o scraping a partir de um IP de datacenter (Render) pode
-> ser bloqueado/limitado por alguns portais (funciona melhor de IP residencial).
-> O free tier do Render hiberna após inatividade (1ª busca após dormir demora ~50s).
-> SQLite é efêmero no free — para persistir monitores, crie um Postgres no Render.
-
-## Status — Fase 1 (MVP) entregue
-
-| Componente | Estado |
+| Recurso | Onde |
 |---|---|
-| Motor de acesso em camadas + **6 conectores** (~170 anúncios/varredura) | ✅ |
-| → HTML SSR: Napista, CarroSP, Comprecar, iCarros | ✅ |
-| → `__NEXT_DATA__` (Next.js, dados estruturados): Localiza (23), Mobiauto (24) | ✅ |
-| Engine de score (idênticos + faixas de km + mediana + fallback FIPE + bônus de km) | ✅ + testes |
-| FIPE — API interna **oficial** (veiculos.fipe.org.br) com cache mensal | ✅ matching por palavra-nome do modelo |
-| Scheduler (APScheduler) + fluxo automático | ✅ |
-| Notificação por e-mail + anti-spam | ✅ |
-| API REST (monitors, listings, settings, logs) | ✅ |
-| Painel React (ranking, monitores, configurações) | ✅ |
+| Busca ao vivo nos portais, com filtro por marca → modelo → ano ↔ versão, preço, km, raio | aba **Busca** |
+| Avaliação de cada carro: Excelente negócio / Bom preço / Preço justo / Acima / Caro | cards |
+| Monitores com frequência própria (30 min a 1 dia) e limite de desconto | aba **Monitores** |
+| Alertas no app (badge + notificação do navegador) e **e-mail-resumo** por monitor | aba **Alertas** |
+| Conta de usuário: carros salvos ⭐, histórico de buscas, edição de perfil/senha | **Histórico** / Minha conta |
+| Parâmetros do score e portais ativos (somente administradores) | **Configurações** |
 
-## Rodar com Docker (recomendado)
+## Arquitetura de produção
 
-```bash
-docker compose up --build
-# frontend: http://localhost:5173
-# API:      http://localhost:8000/docs
-```
+| Parte | Onde | Observação |
+|---|---|---|
+| Frontend React (Vite + Tailwind) | **Netlify** | chama o backend direto (`VITE_API_URL`) |
+| Backend FastAPI | **Render** (free) | scheduler interno: tick de 15 min + limpeza diária |
+| Banco Postgres | **Aiven** (`pricecar`) | dados permanentes (contas, monitores, alertas) |
+| Keep-warm | **GitHub Actions** | pinga `/api/health` a cada 10 min — mantém o Render e o banco ativos |
+
+### Variáveis de ambiente (Render → carprice-api → Environment)
+
+| Variável | Para quê |
+|---|---|
+| `DATABASE_URL` | Postgres permanente (Aiven). Sem ela, usa SQLite efêmero. |
+| `JWT_SECRET` | assinatura dos logins — texto aleatório longo |
+| `ADMIN_EMAILS` | e-mails (vírgula) que podem editar as Configurações. **Recomendado.** Vazio = qualquer usuário logado |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` | envio do e-mail-resumo dos alertas (ex.: Gmail com senha de app) |
 
 ## Rodar local (dev)
 
@@ -63,9 +41,7 @@ docker compose up --build
 ```bash
 cd backend
 pip install -r requirements.txt
-cp .env.example .env            # SQLite por padrão (sem Postgres)
-python -m app.seed              # cria tabelas + seed
-uvicorn app.main:app --reload   # http://localhost:8000
+uvicorn app.main:app --reload   # http://localhost:8000 (SQLite local; tabelas criadas no boot)
 ```
 
 **Frontend** (Node 20):
@@ -79,33 +55,24 @@ npm run dev                     # http://localhost:5173 (proxy /api → :8000)
 
 ```bash
 cd backend
-python -m pytest                # engine de score + parsing dos conectores
+python -m pytest                # 41 testes: score, filtros, conectores, FIPE e API
 ```
 
-Atualizar as fixtures de parsing (quando um portal muda de layout):
-```bash
-python tests/save_fixtures.py
-```
+`tests/test_api.py` cobre login + rate limit, escopo dos monitores, proteção das
+Configurações, frequência da varredura, e-mail-resumo, limpeza e health.
 
-## Arquitetura (resumo)
+## Segurança e limites
 
-- `app/collectors/` — motor de acesso em **camadas** (`base.py`) + conectores plugáveis.
-  Cada conector só faz parsing; o `Fetcher` injetado encapsula o nível de acesso
-  (Nível 1 = httpx). Adicionar um portal **não toca no núcleo nem no score**.
-- `app/services/scoring.py` — engine de score pura e testável.
-- `app/services/scrape.py` — fluxo §6: coleta → dedup → score global → match → notifica.
-- `app/models.py` — `vehicle_listings` é o **mercado global** compartilhado (volume p/ a
-  estatística); `monitor_matches` é o que se notifica.
+- Login com senha em hash (pbkdf2) e token JWT; rate limit de 10 tentativas de
+  login / 10 min e 5 cadastros / hora por IP.
+- Busca ao vivo limitada a 30 por IP a cada 10 min (cada busca raspa 6 portais).
+- Monitores exigem conta; cada usuário só vê e altera os seus.
+- Configurações (score e portais) só para administradores.
 
-## Próximos passos (Fase 2/3)
+## Limitações conhecidas
 
-- Conectores Nível 2 (API JSON de SPAs: Mobiauto, Unidas).
-- Webmotors/OLX via API unblocker paga (Nível 5 — PerimeterX).
-- WhatsApp, histórico de preços, estimador ML, PWA.
-
-> **FIPE oficial (feito):** integração migrada para a API interna oficial
-> `veiculos.fipe.org.br/api/veiculos` (tabela de referência → marcas → modelos →
-> ano → valor), com casamento por palavra-nome do modelo. Eliminou os descontos
-> espúrios do match por nome. Refinamento aberto: a FIPE oficial aplica rate-limit
-> (403 sob carga) — hoje há um respiro de 0,15s/chamada; em escala, paralelizar com
-> backoff ou pré-resolver os códigos por modelo.
+- Webmotors/OLX/Movida usam anti-bot pesado — exigem acesso via navegador ou
+  serviço pago (Fase 2). Mobiauto passou a renderizar no navegador e hoje coleta 0.
+- A FIPE oficial bloqueia IP de datacenter; o catálogo (marcas/modelos/anos) é
+  estático no repositório e o valor FIPE vira só fallback.
+- Render free tem 512 MB de RAM — o mercado é filtrado no SQL para caber.

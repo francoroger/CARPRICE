@@ -55,59 +55,75 @@ def _ja_notificado(db: Session, monitor_id: int, listing_id: int) -> bool:
     )
 
 
-def _corpo(listing: VehicleListing, score: ListingScore, posicao: int) -> str:
-    desc_pct = f"{(score.desconto or 0) * 100:.1f}%"
-    return (
-        f"Oportunidade encontrada (#{posicao} no ranking)\n\n"
-        f"{listing.versao or listing.titulo or 'Veículo'}\n"
-        f"Ano: {listing.ano_modelo or '-'}  |  Km: {listing.km or '-'}\n"
-        f"Preço: R$ {listing.preco:,}\n".replace(",", ".") +
-        f"Desconto vs. idênticos: {desc_pct}  (origem: {score.origem_score})\n"
-        f"Preço de referência: R$ {score.preco_ref or '-'}\n"
-        f"Local: {listing.cidade or '-'}/{listing.uf or '-'}\n\n"
-        f"Link: {listing.url}\n"
-    )
+def _brl(v) -> str:
+    return "—" if v is None else "R$ " + f"{int(v):,}".replace(",", ".")
 
 
-def enviar_email(
-    db: Session, monitor: Monitor, listing: VehicleListing, score: ListingScore, posicao: int
-) -> bool:
-    """Envia e-mail do anúncio. Retorna True se enviou. Registra em notifications."""
-    if _ja_notificado(db, monitor.id, listing.id):
+def _html_resumo(monitor: Monitor, itens: list) -> str:
+    """E-mail HTML: um card por carro (foto, preço, % abaixo do mercado, link)."""
+    linhas = []
+    for listing, score in itens[:15]:
+        desc = (score.desconto or 0) * 100
+        foto = (f'<img src="{listing.foto_url}" width="120" style="border-radius:6px;'
+                f'display:block" alt="">') if listing.foto_url else ""
+        local = " · ".join(filter(None, [listing.cidade, listing.uf]))
+        km = f"{listing.km:,} km".replace(",", ".") if listing.km else "km n/d"
+        linhas.append(f"""
+        <tr><td style="padding:10px;border-bottom:1px solid #eee;width:130px">{foto}</td>
+        <td style="padding:10px;border-bottom:1px solid #eee;font-family:Arial,sans-serif">
+          <div style="font-weight:bold;color:#1e293b">{listing.versao or listing.modelo or 'Veículo'}</div>
+          <div style="color:#dc2626;font-size:18px;font-weight:bold">{_brl(listing.preco)}</div>
+          <div style="color:#64748b;font-size:13px">{listing.ano_modelo or '—'} · {km} · {local}</div>
+          <div style="color:#059669;font-size:13px;font-weight:bold">{desc:.0f}% abaixo do mercado
+            <span style="color:#94a3b8;font-weight:normal">(justo {_brl(score.preco_ref)})</span></div>
+          <a href="{listing.url}" style="color:#0284c7;font-size:13px">Ver anúncio →</a>
+        </td></tr>""")
+    extra = (f'<p style="color:#64748b">+ {len(itens) - 15} outros no app.</p>'
+             if len(itens) > 15 else "")
+    return f"""<div style="max-width:600px;margin:auto">
+      <h2 style="font-family:Arial,sans-serif;color:#0f172a">🚗 {len(itens)} oportunidade(s) — {monitor.nome}</h2>
+      <table style="width:100%;border-collapse:collapse">{''.join(linhas)}</table>{extra}
+      <p style="font-family:Arial,sans-serif;color:#94a3b8;font-size:12px">
+        CarPrice · você recebe isto porque o monitor "{monitor.nome}" está ativo.</p></div>"""
+
+
+def enviar_resumo(db: Session, monitor: Monitor, itens: list) -> bool:
+    """UM e-mail por monitor com todos os carros NOVOS da varredura (em vez de um
+    e-mail por carro). Registra uma Notification por anúncio (anti-reenvio)."""
+    itens = [(l, s) for (l, s) in itens if not _ja_notificado(db, monitor.id, l.id)]
+    if not itens:
         return False
-
     destino = (monitor.criterios_json or {}).get("email_destino") or (
         monitor.user.email if monitor.user else None
     )
-    notif = Notification(monitor_id=monitor.id, listing_id=listing.id, canal="email")
+
+    def registra(status: str, erro: str | None = None) -> None:
+        agora = datetime.now(timezone.utc) if status == "enviado" else None
+        for listing, _s in itens:
+            db.add(Notification(monitor_id=monitor.id, listing_id=listing.id, canal="email",
+                                status=status, erro=erro, enviado_em=agora))
 
     if not settings.smtp_configured or not destino:
-        notif.status = "ignorado"
-        notif.erro = "SMTP não configurado ou destino ausente"
-        db.add(notif)
-        log.info("[email simulado] %s → %s", listing.url, destino)
+        registra("ignorado", "SMTP não configurado ou destino ausente")
+        log.info("[email simulado] %d carro(s) → %s", len(itens), destino)
         return False
 
     try:
-        msg = MIMEText(_corpo(listing, score, posicao), _charset="utf-8")
-        msg["Subject"] = f"[CarPrice] {listing.versao or listing.titulo} — {(score.desconto or 0)*100:.0f}% abaixo"
+        msg = MIMEText(_html_resumo(monitor, itens), "html", _charset="utf-8")
+        melhor = max((s.desconto or 0) for _l, s in itens) * 100
+        msg["Subject"] = (f"[CarPrice] {len(itens)} oportunidade(s) em “{monitor.nome}” "
+                          f"— até {melhor:.0f}% abaixo do mercado")
         msg["From"] = settings.smtp_from
         msg["To"] = destino
-
         with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=20) as srv:
             if settings.smtp_use_tls:
                 srv.starttls()
             if settings.smtp_user:
                 srv.login(settings.smtp_user, settings.smtp_password)
             srv.send_message(msg)
-
-        notif.status = "enviado"
-        notif.enviado_em = datetime.now(timezone.utc)
-        db.add(notif)
+        registra("enviado")
         return True
-    except Exception as e:
-        notif.status = "falha"
-        notif.erro = str(e)
-        db.add(notif)
+    except Exception as e:  # noqa: BLE001
+        registra("falha", str(e))
         log.warning("falha ao enviar e-mail: %s", e)
         return False
